@@ -7,8 +7,11 @@
 #include <cimgui.h>
 #include <cimgui_impl.h>
 #include <stdint.h>
+#include <SDL3/SDL_pen.h>
 
 #include "cap_layer.h"
+#include "cap_shader.h"
+#include "cap_math.h"
 
 // resources:
 // https://www.codingwiththomas.com/blog/rendering-an-opengl-framebuffer-into-a-dear-imgui-window
@@ -20,8 +23,36 @@
 SDL_Window* window = NULL;
 SDL_GLContext glCxt;
 
+ImVec2 lastCanvasSize = { 0, 0 };
+bool canvasWindowSizeChanged = false;
+
+unsigned VBO, VAO, EBO;
+unsigned vshader, fshader, sprogram;
+unsigned FBO, FBT, RBO;
+
+unsigned cavnasTexture;
+
 const char* vertex_shader_code = "#version 330\nlayout (location = 0) in vec3 pos;\n\nvoid main()\n{\n\tgl_Position = vec4(0.9*pos.x, 0.9*pos.y, 0.5*pos.z, 1.0);\n}";
 const char* fragment_shader_code = "#version 330\n\nout vec4 color;\n\nvoid main()\n{\n\tcolor = vec4(0.0, 1.0, 0.0, 1.0);\n}\n";
+
+typedef struct
+{
+    ImVec2 pos;
+    int zoom;
+} Cap_Camera ;
+
+typedef struct
+{
+    ImVec2 pos;
+    ImVec2 motion;
+    int scroll;
+    int buttonDown;
+} Cap_ForwardedMouse;
+
+//typedef struct
+//{
+//
+//} Cap_FowardedPen;
 
 typedef enum
 {
@@ -37,6 +68,8 @@ typedef enum
 } WINDOW_OPEN_STATUS; // shorted to WOS
 
 static bool* windowOpenStatus;
+
+void Exit();
 
 void ShowToolbarWindow(bool* p_open)
 {
@@ -130,6 +163,9 @@ void ShowCanvasWindow(bool* p_open)
         igText("Bounds Min: [%.2f, %.2f]", boundsMin.x, boundsMin.y);
         igText("Bounds Max: [%.2f, %.2f]", boundsMax.x, boundsMax.y);
 #endif
+
+        SDL_Cursor* DRAG_CURSOR = SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_MOVE);
+        SDL_Cursor* DFLT_CURSOR = SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_DEFAULT);
         if (mp.x > boundsMin.x && mp.x < boundsMax.x)
         {
             if (mp.y > boundsMin.y && mp.y < boundsMax.y)
@@ -139,9 +175,33 @@ void ShowCanvasWindow(bool* p_open)
                 ImVec2 tempRectMax = { mp.x - boundsMin.x + 5.0f, mp.y - boundsMin.y + 5.0f };
                 ImDrawList_AddRect(igGetWindowDrawList(), tempRectMin, tempRectMax, color, 0.0f, 0, 1.0f);
 #endif
-                
+                if (io->MouseDown[2])
+                {
+                    SDL_SetCursor(DRAG_CURSOR);
+                }
+                else
+                {
+                    SDL_SetCursor(DFLT_CURSOR);
+                }
+            }
+            else
+            {
+                SDL_SetCursor(DFLT_CURSOR);
             }
         }
+        else
+        {
+            SDL_SetCursor(DFLT_CURSOR);
+        }
+
+        if (lastCanvasSize.x != regionAvail.x || lastCanvasSize.y != regionAvail.y)
+        {
+            canvasWindowSizeChanged = true;
+            lastCanvasSize.x = regionAvail.x;
+            lastCanvasSize.y = regionAvail.y;
+        }
+
+        ImDrawList_AddImage(igGetWindowDrawList(), (void*)FBT, boundsMin, boundsMax, (ImVec2) { 0, 1 }, (ImVec2) { 1, 0 },(255 << 24) | (255 << 16) | (255 << 8) | (255));
     }
     igEnd();
     igPopStyleVar(1);
@@ -221,7 +281,7 @@ int Init()
     ImGui_ImplSDL3_InitForOpenGL(window, &glCxt);
     ImGui_ImplOpenGL3_Init(glsl_version);
 
-    windowOpenStatus = malloc(sizeof(bool) * WOS_COUNT);
+    windowOpenStatus = calloc(WOS_COUNT, sizeof(bool));
     if (windowOpenStatus)
     {
         int i = 0;
@@ -241,8 +301,131 @@ int Init()
     else
     {
         printf("Could not allocate windowOpenStatus[%i]", WOS_COUNT);
+        SDL_GL_DestroyContext(glCxt);
+        SDL_DestroyWindow(window);
+        SDL_Quit();
         return -1;
     }
+
+    char* s = Cap_ShaderGetContentFromFile("VERTEX_SHADER.vert");
+    if (!s)
+    {
+        printf("Could not open VERTEX shader file!\n");
+        Exit();
+        return -1;
+    }
+
+    vshader = glCreateShader(GL_VERTEX_SHADER);
+    glShaderSource(vshader, 1, &s, NULL);
+    glCompileShader(vshader);
+    {
+        int  success;
+        char infoLog[512] = {0};
+        glGetShaderiv(vshader, GL_COMPILE_STATUS, &success);
+
+        if (!success)
+        {
+            glGetShaderInfoLog(vshader, 512, NULL, infoLog);
+            printf("Could not compile VERTEX shader: \n%s\n", infoLog);
+        }
+    }
+
+    s = Cap_ShaderGetContentFromFile("FRAGMENT_SHADER.frag");
+    if (!s)
+    {
+        printf("Could not open FRAGMENT shader file!\n");
+        Exit();
+        return -1;
+    }
+
+    fshader = glCreateShader(GL_FRAGMENT_SHADER);
+    glShaderSource(fshader, 1, &s, NULL);
+    glCompileShader(fshader);
+    {
+        int  success;
+        char infoLog[512] = { 0 };
+        glGetShaderiv(fshader, GL_COMPILE_STATUS, &success);
+
+        if (!success)
+        {
+            glGetShaderInfoLog(fshader, 512, NULL, infoLog);
+            printf("Could not compile FRAGMENT shader: \n%s\n", infoLog);
+        }
+    }
+
+    sprogram = glCreateProgram();
+    glAttachShader(sprogram, vshader);
+    glAttachShader(sprogram, fshader);
+    glLinkProgram(sprogram);
+    {
+        int  success;
+        char infoLog[512] = { 0 };
+        glGetProgramiv(sprogram, GL_LINK_STATUS, &success);
+        if (!success) 
+        {
+            glGetProgramInfoLog(sprogram, 512, NULL, infoLog);
+            printf("Could not LINK SHADER: \n%s\n", infoLog);
+        }
+    }
+    glDeleteShader(vshader);
+    glDeleteShader(fshader);
+
+    float vertices[] = {
+        -50.5f, -50.5f, 0.0f,
+         50.5f, -50.5f, 0.0f,
+         50.0f,  50.5f, 0.0f,
+         50.5f,  50.5f, 0.0f,
+        -50.5f,  50.5f, 0.0f,
+        -50.0f, -50.5f, 0.0f,
+    };
+
+    glGenBuffers(1, &VBO);
+    glGenBuffers(1, &EBO);
+    glGenVertexArrays(1, &VAO);
+    glGenFramebuffers(1, &FBO);
+
+    glBindFramebuffer(GL_FRAMEBUFFER, FBO);
+
+    glBindVertexArray(VAO);
+    glBindBuffer(GL_ARRAY_BUFFER, VBO);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+    glEnableVertexAttribArray(0);
+
+    glGenTextures(1, &FBT);
+    glBindTexture(GL_TEXTURE_2D, FBT);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 800, 600, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+
+    glBindTexture(GL_TEXTURE_2D, 0);
+    glBindVertexArray(0);
+
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, FBT, 0);
+
+
+    if (glCheckFramebufferStatus(GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE)
+    {
+        // it works!
+        printf("framebuffer complete!");
+    }
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    
+    mat4 model = GLM_MAT4_IDENTITY_INIT;
+
+    mat4 view = GLM_MAT4_IDENTITY_INIT;
+
+    mat4 proj = GLM_MAT4_IDENTITY_INIT;
+    glmc_ortho(-(INITIAL_WINDOW_WIDTH / 2.0f), INITIAL_WINDOW_WIDTH / 2.0f, -(INITIAL_WINDOW_HEIGHT / 2.0f), (INITIAL_WINDOW_HEIGHT / 2.0f), -0.1f, 100.f, proj);
+
+    glUseProgram(sprogram);
+
+    glUniformMatrix4fv(glGetUniformLocation(sprogram, "model"), 1, GL_FALSE, model[0]);
+    glUniformMatrix4fv(glGetUniformLocation(sprogram, "view"), 1, GL_FALSE, view[0]);
+    glUniformMatrix4fv(glGetUniformLocation(sprogram, "proj"), 1, GL_FALSE, proj[0]);
+
+    glUseProgram(0);
+
     return 0;
 }
 
@@ -255,6 +438,9 @@ void Run()
     ImGuiWindowFlags defaultWindowFlags = 0;
 
     bool wantToQuit = false;
+    float pressure = 0.0f;
+    float previous_touch_x = -1.0f;
+    float previous_touch_y = -1.0f;
 
     while (running)
     {
@@ -265,14 +451,59 @@ void Run()
             {
                 running = 0;
             }
-            if (ev.window.type == SDL_EVENT_WINDOW_CLOSE_REQUESTED && ev.window.windowID == SDL_GetWindowID(window) || wantToQuit)
+            else if (ev.window.type == SDL_EVENT_WINDOW_CLOSE_REQUESTED && ev.window.windowID == SDL_GetWindowID(window) || wantToQuit)
             {
                 // check if unsaved
                 //     show modal
                 // else
                 running = 0;
             }
+            else if (ev.type == SDL_EVENT_PEN_MOTION)
+            {
+                if (pressure > 0.0f) 
+                {
+                    if (previous_touch_x >= 0.0f) 
+                    {  /* only draw if we're moving while touching */
+                        /* draw with the alpha set to the pressure, so you effectively get a fainter line for lighter presses. */
+                        //SDL_SetRenderTarget(renderer, render_target);
+                        //SDL_SetRenderDrawColorFloat(renderer, 0, 0, 0, pressure);
+                        //SDL_RenderLine(renderer, previous_touch_x, previous_touch_y, event->pmotion.x, event->pmotion.y);
+                        printf("HES DRAWING!!!!");
+                    }
+                    previous_touch_x = ev.pmotion.x;
+                    previous_touch_y = ev.pmotion.y;
+                }
+                else {
+                    previous_touch_x = previous_touch_y = -1.0f;
+                }
+
+            }
+            else if (ev.type == SDL_EVENT_PEN_AXIS)
+            {
+                if (ev.paxis.axis == SDL_PEN_AXIS_PRESSURE) 
+                {
+                    pressure = ev.paxis.value;  /* remember new pressure for later draws. */
+                }
+            }
         }
+
+        if (canvasWindowSizeChanged)
+        {
+            glBindTexture(GL_TEXTURE_2D, FBT);
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, lastCanvasSize.x, lastCanvasSize.y, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+            glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, FBT, 0);
+
+            glUseProgram(sprogram);
+            mat4 proj = GLM_MAT4_IDENTITY_INIT;
+            glmc_ortho(-(lastCanvasSize.x / 2.0f), lastCanvasSize.x / 2.0f, -(lastCanvasSize.y / 2.0f), (lastCanvasSize.y / 2.0f), -0.1f, 100.f, proj);
+
+            glUniformMatrix4fv(glGetUniformLocation(sprogram, "proj"), 1, GL_FALSE, proj[0]);
+            glUseProgram(0);
+            canvasWindowSizeChanged = false;
+        }
+
         glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT);
 
@@ -402,6 +633,22 @@ void Run()
             igRenderPlatformWindowsDefault(NULL, NULL);
             SDL_GL_MakeCurrent(backup_current_window, backup_current_context);
         }
+
+        glViewport(0, 0, lastCanvasSize.x, lastCanvasSize.y);
+
+        glBindFramebuffer(GL_FRAMEBUFFER, FBO);
+
+        glClearColor(0.11f, 0.123f, 0.13f, 1.0f);
+        glClear(GL_COLOR_BUFFER_BIT);
+
+        glUseProgram(sprogram);
+        glBindVertexArray(VAO);
+        glDrawArrays(GL_TRIANGLES, 0, 6);
+        glBindVertexArray(0);
+        glUseProgram(0);
+
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
         SDL_GL_SwapWindow(window);
     }
 }
@@ -409,6 +656,11 @@ void Run()
 // Clean up the program's memory usage
 void Exit()
 {
+    glDeleteBuffers(1, &VBO);
+    glDeleteBuffers(1, &EBO);
+    glDeleteVertexArrays(1, &VAO);
+    glDeleteProgram(sprogram);
+    glDeleteFramebuffers(1, &FBO);
     // clean up
     ImGui_ImplOpenGL3_Shutdown();
     ImGui_ImplSDL3_Shutdown();

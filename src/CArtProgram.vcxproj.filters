@@ -18,6 +18,15 @@
     <ClCompile Include="main.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="cap_shader.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="cap_filemanip.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="cap_math.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="cap_pixel.h">
@@ -29,5 +38,17 @@
     <ClInclude Include="cap_math.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="cap_filemanip.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="cap_shader.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <Text Include="VERTEX_SHADER.vert" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="FRAGMENT_SHADER.frag" />
   </ItemGroup>
 </Project>

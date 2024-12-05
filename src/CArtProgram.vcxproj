@@ -55,15 +55,16 @@
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>CIMGUI_USE_OPENGL3;CIMGUI_USE_SDL3;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;CIMGUI_USE_OPENGL3;CIMGUI_USE_SDL3;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(SolutionDir)dep/SDL3/include/;$(SolutionDir)dep/cimgui/;$(SolutionDir)dep/glad/include/;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)dep/SDL3/include/;$(SolutionDir)dep/cimgui/;$(SolutionDir)dep/glad/include/;$(SolutionDir)dep/cglm/include/;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalOptions>/arch:AVX %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>$(SolutionDir)dep/SDL3/lib/x64;$(SolutionDir)bin/$(Configuration)-$(Platform)-windows/GLAD;$(SolutionDir)dep/cimgui\build\Debug\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>GLAD.lib;cimgui.lib;SDL3.lib;$(CoreLibraryDependencies);%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(SolutionDir)dep/SDL3/lib/x64;$(SolutionDir)bin/$(Configuration)-$(Platform)-windows/GLAD;$(SolutionDir)dep/cimgui\build\Debug\;$(SolutionDir)dep/cglm/win/x64/Release/;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>GLAD.lib;cglm.lib;cimgui.lib;SDL3.lib;$(CoreLibraryDependencies);%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -72,26 +73,38 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>CIMGUI_USE_OPENGL3;CIMGUI_USE_SDL3;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;CIMGUI_USE_OPENGL3;CIMGUI_USE_SDL3;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(SolutionDir)dep/SDL3/include/;$(SolutionDir)dep/cimgui/;$(SolutionDir)dep/glad/include/;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)dep/SDL3/include/;$(SolutionDir)dep/cimgui/;$(SolutionDir)dep/glad/include/;$(SolutionDir)dep/cglm/include/;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalOptions>/arch:AVX %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>$(SolutionDir)dep/SDL3/lib/x64;$(SolutionDir)bin/$(Configuration)-$(Platform)-windows/GLAD;$(SolutionDir)dep/cimgui\build\Debug\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>GLAD.lib;cimgui.lib;SDL3.lib;$(CoreLibraryDependencies);%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(SolutionDir)dep/SDL3/lib/x64;$(SolutionDir)bin/$(Configuration)-$(Platform)-windows/GLAD;$(SolutionDir)dep/cimgui\build\Debug\;$(SolutionDir)dep/cglm/win/x64/Release/;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>GLAD.lib;cglm.lib;cimgui.lib;SDL3.lib;$(CoreLibraryDependencies);%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="cap_filemanip.h" />
+    <ClInclude Include="cap_shader.h" />
+    <ClCompile Include="cap_filemanip.c" />
+    <ClCompile Include="cap_math.c" />
+    <ClCompile Include="cap_shader.c" />
     <ClCompile Include="main.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="cap_layer.h" />
     <ClInclude Include="cap_math.h" />
     <ClInclude Include="cap_pixel.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <Text Include="VERTEX_SHADER.vert" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="FRAGMENT_SHADER.frag" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
