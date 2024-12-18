@@ -10,6 +10,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "CArtProgram", "src\CArtProg
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "GLAD", "dep\glad\GLAD.vcxproj", "{1DFA5441-F552-4358-A231-3A540BBA1D7E}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "RealTimeStylusCWrapper", "dep\RealTimeStylusCWrapper\RealTimeStylusCWrapper.vcxproj", "{330176F2-1107-4D1F-82FB-5E31EE8569EF}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -32,6 +34,14 @@ Global
 		{1DFA5441-F552-4358-A231-3A540BBA1D7E}.Release|x64.ActiveCfg = Release|x64
 		{1DFA5441-F552-4358-A231-3A540BBA1D7E}.Release|x64.Build.0 = Release|x64
 		{1DFA5441-F552-4358-A231-3A540BBA1D7E}.Release|x86.ActiveCfg = Release|x64
+		{330176F2-1107-4D1F-82FB-5E31EE8569EF}.Debug|x64.ActiveCfg = Debug|x64
+		{330176F2-1107-4D1F-82FB-5E31EE8569EF}.Debug|x64.Build.0 = Debug|x64
+		{330176F2-1107-4D1F-82FB-5E31EE8569EF}.Debug|x86.ActiveCfg = Debug|Win32
+		{330176F2-1107-4D1F-82FB-5E31EE8569EF}.Debug|x86.Build.0 = Debug|Win32
+		{330176F2-1107-4D1F-82FB-5E31EE8569EF}.Release|x64.ActiveCfg = Release|x64
+		{330176F2-1107-4D1F-82FB-5E31EE8569EF}.Release|x64.Build.0 = Release|x64
+		{330176F2-1107-4D1F-82FB-5E31EE8569EF}.Release|x86.ActiveCfg = Release|Win32
+		{330176F2-1107-4D1F-82FB-5E31EE8569EF}.Release|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

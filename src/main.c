@@ -201,7 +201,7 @@ void ShowCanvasWindow(bool* p_open)
             lastCanvasSize.y = regionAvail.y;
         }
 
-        ImDrawList_AddImage(igGetWindowDrawList(), (void*)FBT, boundsMin, boundsMax, (ImVec2) { 0, 1 }, (ImVec2) { 1, 0 },(255 << 24) | (255 << 16) | (255 << 8) | (255));
+        ImDrawList_AddImage(igGetWindowDrawList(), FBT, boundsMin, boundsMax, (ImVec2) { 0, 1 }, (ImVec2) { 1, 0 },(255 << 24) | (255 << 16) | (255 << 8) | (255));
     }
     igEnd();
     igPopStyleVar(1);
@@ -490,7 +490,7 @@ void Run()
         if (canvasWindowSizeChanged)
         {
             glBindTexture(GL_TEXTURE_2D, FBT);
-            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, lastCanvasSize.x, lastCanvasSize.y, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, (int)lastCanvasSize.x, (int)lastCanvasSize.y, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
             glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, FBT, 0);
@@ -634,7 +634,7 @@ void Run()
             SDL_GL_MakeCurrent(backup_current_window, backup_current_context);
         }
 
-        glViewport(0, 0, lastCanvasSize.x, lastCanvasSize.y);
+        glViewport(0, 0, (int)lastCanvasSize.x, (int)lastCanvasSize.y);
 
         glBindFramebuffer(GL_FRAMEBUFFER, FBO);
 
