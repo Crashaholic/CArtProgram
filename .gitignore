@@ -21,3 +21,4 @@
 /dep/cglm/win/x64/*
 /dep/cglm/.readthedocs.yaml
 /dep/cglm/cglm.podspec
+/dep/cglm/win/cglm-test/x64/Release

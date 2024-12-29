@@ -7,8 +7,9 @@ typedef struct
 {
     CAP_PixelRGBA* data;
     unsigned width, height;
+    unsigned textureId;
     int enabled;
-} CAP_Layer ;
+} CAP_Layer;
 
 typedef enum
 {

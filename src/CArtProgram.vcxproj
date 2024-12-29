@@ -63,7 +63,7 @@
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>$(SolutionDir)dep/SDL3/lib/x64;$(SolutionDir)bin/$(Configuration)-$(Platform)-windows/GLAD;$(SolutionDir)dep/cimgui\build\Debug\;$(SolutionDir)dep/cglm/win/x64/Release/;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>$(SolutionDir)dep/SDL3/lib/x64;$(SolutionDir)bin/$(Configuration)-$(Platform)-windows/GLAD;$(SolutionDir)dep/cimgui/build/Release/;$(SolutionDir)dep/cglm/win/x64/Release/;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalDependencies>GLAD.lib;cglm.lib;cimgui.lib;SDL3.lib;$(CoreLibraryDependencies);%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
@@ -89,9 +89,12 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="cap_filemanip.h" />
+    <ClInclude Include="cap_logging.h" />
     <ClInclude Include="cap_shader.h" />
     <ClCompile Include="cap_filemanip.c" />
+    <ClCompile Include="cap_layer.c" />
     <ClCompile Include="cap_math.c" />
+    <ClCompile Include="cap_pixel.c" />
     <ClCompile Include="cap_shader.c" />
     <ClCompile Include="main.c" />
   </ItemGroup>

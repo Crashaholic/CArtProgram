@@ -27,6 +27,12 @@
     <ClCompile Include="cap_math.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="cap_pixel.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="cap_layer.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="cap_pixel.h">
@@ -43,6 +49,9 @@
     </ClInclude>
     <ClInclude Include="cap_shader.h">
       <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="cap_logging.h">
+      <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

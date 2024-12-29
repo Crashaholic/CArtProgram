@@ -12,6 +12,7 @@
 #include "cap_layer.h"
 #include "cap_shader.h"
 #include "cap_math.h"
+#include "cap_logging.h"
 
 // resources:
 // https://www.codingwiththomas.com/blog/rendering-an-opengl-framebuffer-into-a-dear-imgui-window
@@ -30,7 +31,7 @@ unsigned VBO, VAO, EBO;
 unsigned vshader, fshader, sprogram;
 unsigned FBO, FBT, RBO;
 
-unsigned cavnasTexture;
+CAP_Layer canvasMainLayer;
 
 const char* vertex_shader_code = "#version 330\nlayout (location = 0) in vec3 pos;\n\nvoid main()\n{\n\tgl_Position = vec4(0.9*pos.x, 0.9*pos.y, 0.5*pos.z, 1.0);\n}";
 const char* fragment_shader_code = "#version 330\n\nout vec4 color;\n\nvoid main()\n{\n\tcolor = vec4(0.0, 1.0, 0.0, 1.0);\n}\n";
@@ -38,7 +39,7 @@ const char* fragment_shader_code = "#version 330\n\nout vec4 color;\n\nvoid main
 typedef struct
 {
     ImVec2 pos;
-    int zoom;
+    float zoom;
 } Cap_Camera ;
 
 typedef struct
@@ -53,6 +54,8 @@ typedef struct
 //{
 //
 //} Cap_FowardedPen;
+
+Cap_Camera capcam;
 
 typedef enum
 {
@@ -82,7 +85,7 @@ void ShowToolbarWindow(bool* p_open)
 }
 
 void ShowBrushWindow(bool* p_open)
-{
+{ 
     if (igBegin("Brushes##WindowBrushes", p_open, 0))
     {
         igText("IM BRUSHES!!!");
@@ -146,7 +149,6 @@ void ShowCanvasWindow(bool* p_open)
 
         ImVec2 boundsMin = { 0.0f, 0.0f };
         ImVec2 boundsMax = { 0.0f, 0.0f };
-        unsigned int color = (255 << 24) | (255 << 16) | (255); // Magenta
 
         ImVec2 regionAvail; igGetContentRegionAvail(&regionAvail);
 
@@ -156,13 +158,6 @@ void ShowCanvasWindow(bool* p_open)
         boundsMax.y = getCursorScreenPos.y + regionAvail.y;
 
         ImVec2 mp = io->MousePos;
-#if 0
-        igText("Mouse: [%.2f, %.2f]", mp.x, mp.y);
-        igText("getCursorScreenPos: [%.2f, %.2f]", getCursorScreenPos.x, getCursorScreenPos.y);
-        igText("regionAvail: [%.2f, %.2f]", regionAvail.x, regionAvail.y);
-        igText("Bounds Min: [%.2f, %.2f]", boundsMin.x, boundsMin.y);
-        igText("Bounds Max: [%.2f, %.2f]", boundsMax.x, boundsMax.y);
-#endif
 
         SDL_Cursor* DRAG_CURSOR = SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_MOVE);
         SDL_Cursor* DFLT_CURSOR = SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_DEFAULT);
@@ -170,18 +165,41 @@ void ShowCanvasWindow(bool* p_open)
         {
             if (mp.y > boundsMin.y && mp.y < boundsMax.y)
             {
-#if 0
-                ImVec2 tempRectMin = { mp.x - boundsMin.x - 5.0f, mp.y - boundsMin.y - 5.0f };
-                ImVec2 tempRectMax = { mp.x - boundsMin.x + 5.0f, mp.y - boundsMin.y + 5.0f };
-                ImDrawList_AddRect(igGetWindowDrawList(), tempRectMin, tempRectMax, color, 0.0f, 0, 1.0f);
-#endif
                 if (io->MouseDown[2])
                 {
                     SDL_SetCursor(DRAG_CURSOR);
+                    capcam.pos.x += io->MouseDelta.x;
+                    capcam.pos.y -= io->MouseDelta.y;
+                    printf("capcam.pos: [ %f, %f ]\n", capcam.pos.x, capcam.pos.y);
                 }
                 else
                 {
                     SDL_SetCursor(DFLT_CURSOR);
+                }
+
+                if (io->MouseWheel > 0.f && io->MouseWheel > FLT_EPSILON)
+                {
+                    if (io->KeyCtrl)
+                    {
+                        capcam.zoom += 0.5f;
+                    }
+                    else 
+                    {
+                        capcam.zoom += 0.1f;
+                    }
+                    printf("capcam.zoom: %f\n", capcam.zoom);
+                }
+                else if (io->MouseWheel < 0.f && io->MouseWheel < FLT_EPSILON)
+                {
+                    if ((capcam.zoom - 0.1f) > 0.0f)
+                    {
+                        capcam.zoom -= 0.1f;
+                    }
+                    else
+                    {
+                        capcam.zoom = 0.1f;
+                    }
+                    printf("capcam.zoom: %f\n", capcam.zoom);
                 }
             }
             else
@@ -212,7 +230,7 @@ int Init()
 {
     if (!SDL_Init(SDL_INIT_VIDEO | SDL_INIT_EVENTS))
     {
-        printf("Failed to initialize SDL: %s\n", SDL_GetError());
+        print_err("Failed to initialize SDL: %s\n", SDL_GetError());
         return -1;
     }
     // Set OpenGL version and profile
@@ -226,7 +244,7 @@ int Init()
 
     if (!window)
     {
-        printf("Failed to create SDL window: %s\n", SDL_GetError());
+        print_err("Failed to create SDL window: %s\n", SDL_GetError());
         SDL_Quit();
         return -1;
     }
@@ -371,12 +389,12 @@ int Init()
     glDeleteShader(fshader);
 
     float vertices[] = {
-        -50.5f, -50.5f, 0.0f,
-         50.5f, -50.5f, 0.0f,
-         50.0f,  50.5f, 0.0f,
-         50.5f,  50.5f, 0.0f,
-        -50.5f,  50.5f, 0.0f,
-        -50.0f, -50.5f, 0.0f,
+        -50.0f, -50.0f, 0.0f, 0.0f, 1.0f,
+         50.0f, -50.0f, 0.0f, 1.0f, 1.0f,
+         50.0f,  50.0f, 0.0f, 1.0f, 0.0f,
+         50.0f,  50.0f, 0.0f, 1.0f, 0.0f,
+        -50.0f,  50.0f, 0.0f, 0.0f, 0.0f,
+        -50.0f, -50.0f, 0.0f, 0.0f, 1.0f,
     };
 
     glGenBuffers(1, &VBO);
@@ -389,8 +407,10 @@ int Init()
     glBindVertexArray(VAO);
     glBindBuffer(GL_ARRAY_BUFFER, VBO);
     glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
     glEnableVertexAttribArray(0);
+    glEnableVertexAttribArray(1);
 
     glGenTextures(1, &FBT);
     glBindTexture(GL_TEXTURE_2D, FBT);
@@ -403,15 +423,18 @@ int Init()
 
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, FBT, 0);
 
+    capcam.pos = (ImVec2){0.0f,0.0f};
+    capcam.zoom = 1.0f;
 
     if (glCheckFramebufferStatus(GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE)
     {
         // it works!
-        printf("framebuffer complete!");
+        print_wng("[INIT] Framebuffer complete.\n");
     }
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
     
     mat4 model = GLM_MAT4_IDENTITY_INIT;
+    glmc_translate(model, (vec3) { 0.0f, 0.0f, 0.0f });
 
     mat4 view = GLM_MAT4_IDENTITY_INIT;
 
@@ -425,6 +448,27 @@ int Init()
     glUniformMatrix4fv(glGetUniformLocation(sprogram, "proj"), 1, GL_FALSE, proj[0]);
 
     glUseProgram(0);
+
+    canvasMainLayer = CreateLayer(100, 100);
+    unsigned temp1 = canvasMainLayer.width * canvasMainLayer.height;
+    int temp;
+    for (temp = 0; temp < temp1; temp++)
+    {
+        canvasMainLayer.data[temp].r = 0.00f + 0.0001f * temp;
+        canvasMainLayer.data[temp].g = 0.00f;
+        canvasMainLayer.data[temp].b = 0.05f + 0.005f * (temp % canvasMainLayer.width);
+        canvasMainLayer.data[temp].a = 1.00f;
+    }
+
+    glGenTextures(1, &canvasMainLayer.textureId);
+    glBindTexture(GL_TEXTURE_2D, canvasMainLayer.textureId);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, canvasMainLayer.width, canvasMainLayer.height, 0, GL_RGBA, GL_FLOAT, (void*)canvasMainLayer.data);
+    glBindTexture(GL_TEXTURE_2D, 0);
+
 
     return 0;
 }
@@ -498,11 +542,11 @@ void Run()
             glUseProgram(sprogram);
             mat4 proj = GLM_MAT4_IDENTITY_INIT;
             glmc_ortho(-(lastCanvasSize.x / 2.0f), lastCanvasSize.x / 2.0f, -(lastCanvasSize.y / 2.0f), (lastCanvasSize.y / 2.0f), -0.1f, 100.f, proj);
-
             glUniformMatrix4fv(glGetUniformLocation(sprogram, "proj"), 1, GL_FALSE, proj[0]);
             glUseProgram(0);
             canvasWindowSizeChanged = false;
         }
+
 
         glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT);
@@ -642,6 +686,11 @@ void Run()
         glClear(GL_COLOR_BUFFER_BIT);
 
         glUseProgram(sprogram);
+        mat4 model = GLM_MAT4_IDENTITY_INIT;
+        glmc_translate(model, (vec3) { capcam.pos.x, capcam.pos.y, 0.0f });
+        glmc_scale(model, (vec3) { 1.0f * capcam.zoom, 1.0f * capcam.zoom, 1.0f });
+        glUniformMatrix4fv(glGetUniformLocation(sprogram, "model"), 1, GL_FALSE, model[0]);
+        glBindTexture(GL_TEXTURE_2D, canvasMainLayer.textureId);
         glBindVertexArray(VAO);
         glDrawArrays(GL_TRIANGLES, 0, 6);
         glBindVertexArray(0);
