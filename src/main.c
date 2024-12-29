@@ -7,7 +7,6 @@
 #include <cimgui.h>
 #include <cimgui_impl.h>
 #include <stdint.h>
-#include <SDL3/SDL_pen.h>
 
 #include "cap_layer.h"
 #include "cap_shader.h"
@@ -33,8 +32,7 @@ unsigned FBO, FBT, RBO;
 
 CAP_Layer canvasMainLayer;
 
-const char* vertex_shader_code = "#version 330\nlayout (location = 0) in vec3 pos;\n\nvoid main()\n{\n\tgl_Position = vec4(0.9*pos.x, 0.9*pos.y, 0.5*pos.z, 1.0);\n}";
-const char* fragment_shader_code = "#version 330\n\nout vec4 color;\n\nvoid main()\n{\n\tcolor = vec4(0.0, 1.0, 0.0, 1.0);\n}\n";
+bool testExport = false;
 
 typedef struct
 {
@@ -170,7 +168,6 @@ void ShowCanvasWindow(bool* p_open)
                     SDL_SetCursor(DRAG_CURSOR);
                     capcam.pos.x += io->MouseDelta.x;
                     capcam.pos.y -= io->MouseDelta.y;
-                    printf("capcam.pos: [ %f, %f ]\n", capcam.pos.x, capcam.pos.y);
                 }
                 else
                 {
@@ -181,25 +178,25 @@ void ShowCanvasWindow(bool* p_open)
                 {
                     if (io->KeyCtrl)
                     {
-                        capcam.zoom += 0.5f;
+                        if (capcam.zoom + 0.5f > 20.0f)
+                            capcam.zoom = 20.0f;
+                        else
+                            capcam.zoom += 0.5f;
                     }
-                    else 
-                    {
-                        capcam.zoom += 0.1f;
-                    }
-                    printf("capcam.zoom: %f\n", capcam.zoom);
                 }
                 else if (io->MouseWheel < 0.f && io->MouseWheel < FLT_EPSILON)
                 {
-                    if ((capcam.zoom - 0.1f) > 0.0f)
+                    if (io->KeyCtrl)
                     {
-                        capcam.zoom -= 0.1f;
+                        if ((capcam.zoom - 0.5f) > 0.0f)
+                        {
+                            capcam.zoom -= 0.5f;
+                        }
+                        else
+                        {
+                            capcam.zoom = 0.1f;
+                        }
                     }
-                    else
-                    {
-                        capcam.zoom = 0.1f;
-                    }
-                    printf("capcam.zoom: %f\n", capcam.zoom);
                 }
             }
             else
@@ -389,12 +386,12 @@ int Init()
     glDeleteShader(fshader);
 
     float vertices[] = {
-        -50.0f, -50.0f, 0.0f, 0.0f, 1.0f,
-         50.0f, -50.0f, 0.0f, 1.0f, 1.0f,
-         50.0f,  50.0f, 0.0f, 1.0f, 0.0f,
-         50.0f,  50.0f, 0.0f, 1.0f, 0.0f,
-        -50.0f,  50.0f, 0.0f, 0.0f, 0.0f,
-        -50.0f, -50.0f, 0.0f, 0.0f, 1.0f,
+        -0.5f, -0.5f, 0.0f, 0.0f, 1.0f,
+         0.5f, -0.5f, 0.0f, 1.0f, 1.0f,
+         0.5f,  0.5f, 0.0f, 1.0f, 0.0f,
+         0.5f,  0.5f, 0.0f, 1.0f, 0.0f,
+        -0.5f,  0.5f, 0.0f, 0.0f, 0.0f,
+        -0.5f, -0.5f, 0.0f, 0.0f, 1.0f,
     };
 
     glGenBuffers(1, &VBO);
@@ -449,9 +446,9 @@ int Init()
 
     glUseProgram(0);
 
-    canvasMainLayer = CreateLayer(100, 100);
+    canvasMainLayer = CreateLayer(200, 100);
     unsigned temp1 = canvasMainLayer.width * canvasMainLayer.height;
-    int temp;
+    unsigned int temp;
     for (temp = 0; temp < temp1; temp++)
     {
         canvasMainLayer.data[temp].r = 0.00f + 0.0001f * temp;
@@ -468,7 +465,6 @@ int Init()
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, canvasMainLayer.width, canvasMainLayer.height, 0, GL_RGBA, GL_FLOAT, (void*)canvasMainLayer.data);
     glBindTexture(GL_TEXTURE_2D, 0);
-
 
     return 0;
 }
@@ -502,33 +498,33 @@ void Run()
                 // else
                 running = 0;
             }
-            else if (ev.type == SDL_EVENT_PEN_MOTION)
-            {
-                if (pressure > 0.0f) 
-                {
-                    if (previous_touch_x >= 0.0f) 
-                    {  /* only draw if we're moving while touching */
-                        /* draw with the alpha set to the pressure, so you effectively get a fainter line for lighter presses. */
-                        //SDL_SetRenderTarget(renderer, render_target);
-                        //SDL_SetRenderDrawColorFloat(renderer, 0, 0, 0, pressure);
-                        //SDL_RenderLine(renderer, previous_touch_x, previous_touch_y, event->pmotion.x, event->pmotion.y);
-                        printf("HES DRAWING!!!!");
-                    }
-                    previous_touch_x = ev.pmotion.x;
-                    previous_touch_y = ev.pmotion.y;
-                }
-                else {
-                    previous_touch_x = previous_touch_y = -1.0f;
-                }
+            //else if (ev.type == SDL_EVENT_PEN_MOTION)
+            //{
+            //    if (pressure > 0.0f) 
+            //    {
+            //        if (previous_touch_x >= 0.0f) 
+            //        {  /* only draw if we're moving while touching */
+            //            /* draw with the alpha set to the pressure, so you effectively get a fainter line for lighter presses. */
+            //            //SDL_SetRenderTarget(renderer, render_target);
+            //            //SDL_SetRenderDrawColorFloat(renderer, 0, 0, 0, pressure);
+            //            //SDL_RenderLine(renderer, previous_touch_x, previous_touch_y, event->pmotion.x, event->pmotion.y);
+            //            printf("HES DRAWING!!!!");
+            //        }
+            //        previous_touch_x = ev.pmotion.x;
+            //        previous_touch_y = ev.pmotion.y;
+            //    }
+            //    else {
+            //        previous_touch_x = previous_touch_y = -1.0f;
+            //    }
 
-            }
-            else if (ev.type == SDL_EVENT_PEN_AXIS)
-            {
-                if (ev.paxis.axis == SDL_PEN_AXIS_PRESSURE) 
-                {
-                    pressure = ev.paxis.value;  /* remember new pressure for later draws. */
-                }
-            }
+            //}
+            //else if (ev.type == SDL_EVENT_PEN_AXIS)
+            //{
+            //    if (ev.paxis.axis == SDL_PEN_AXIS_PRESSURE) 
+            //    {
+            //        pressure = ev.paxis.value;  /* remember new pressure for later draws. */
+            //    }
+            //}
         }
 
         if (canvasWindowSizeChanged)
@@ -547,6 +543,12 @@ void Run()
             canvasWindowSizeChanged = false;
         }
 
+        if (testExport)
+        {
+            printf("EXPORTING!!!!\n");
+            Cap_WriteCanvasToFile("./test.png", canvasMainLayer.data, canvasMainLayer.width, canvasMainLayer.height);
+            testExport = false;
+        }
 
         glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT);
@@ -587,19 +589,26 @@ void Run()
             {
                 if (igBeginMenu("File", 1))
                 {
+                    igMenuItem_BoolPtr("New", "Ctrl + N", NULL, 1);
+                    igMenuItem_BoolPtr("Open", "Ctrl + O", NULL, 1);
+                    igMenuItem_BoolPtr("Export Image", NULL, &testExport, 1);
                     igMenuItem_BoolPtr("Exit", NULL, &wantToQuit, 1);
                     igEndMenu();
                 }
                 if (igBeginMenu("Edit", 1))
                 {
+                    igMenuItem_BoolPtr("Undo", "Ctrl + Z", NULL, 1);
+                    igMenuItem_BoolPtr("Redo", "Ctrl + Y", NULL, 1);
                     igEndMenu();
                 }
                 if (igBeginMenu("Image", 1))
                 {
+                    igMenuItem_BoolPtr("Rotate 90 Degrees", NULL, NULL, 1);
                     igEndMenu();
                 }
                 if (igBeginMenu("Layer", 1))
                 {
+                    igMenuItem_BoolPtr("Rotate 90 Degrees", NULL, NULL, 1);
                     igEndMenu();
                 }
                 if (igBeginMenu("Window", 1))
@@ -687,9 +696,12 @@ void Run()
 
         glUseProgram(sprogram);
         mat4 model = GLM_MAT4_IDENTITY_INIT;
-        glmc_translate(model, (vec3) { capcam.pos.x, capcam.pos.y, 0.0f });
-        glmc_scale(model, (vec3) { 1.0f * capcam.zoom, 1.0f * capcam.zoom, 1.0f });
+        glmc_scale(model, (vec3) { canvasMainLayer.width, canvasMainLayer.height, 1.0f });
         glUniformMatrix4fv(glGetUniformLocation(sprogram, "model"), 1, GL_FALSE, model[0]);
+        mat4 view = GLM_MAT4_IDENTITY_INIT;
+        glmc_translate(view, (vec3) { capcam.pos.x, capcam.pos.y, 0.0f });
+        glmc_scale(view, (vec3) { 1.0f * capcam.zoom, 1.0f * capcam.zoom, 1.0f });
+        glUniformMatrix4fv(glGetUniformLocation(sprogram, "view"), 1, GL_FALSE, view[0]);
         glBindTexture(GL_TEXTURE_2D, canvasMainLayer.textureId);
         glBindVertexArray(VAO);
         glDrawArrays(GL_TRIANGLES, 0, 6);

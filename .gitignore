@@ -22,3 +22,4 @@
 /dep/cglm/.readthedocs.yaml
 /dep/cglm/cglm.podspec
 /dep/cglm/win/cglm-test/x64/Release
+*.png
