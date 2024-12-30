@@ -1,8 +1,6 @@
-#include <stdbool.h>
 #include <SDL3/SDL.h>
 //#include <SDL3/SDL_main.h> // will uncomment when i do meet a problematic evildoer
 #include <glad/glad.h>
-#include <stdio.h>
 #define CIMGUI_DEFINE_ENUMS_AND_STRUCTS
 #include <cimgui.h>
 #include <cimgui_impl.h>
@@ -22,40 +20,11 @@
 #define INITIAL_WINDOW_WIDTH 1280
 #define INITIAL_WINDOW_HEIGHT 720
 
-SDL_Window* window = NULL;
-SDL_GLContext glCxt;
-
-ImVec2 lastCanvasSize = { 0, 0 };
-bool canvasWindowSizeChanged = false;
-
-unsigned VBO, VAO, EBO;
-unsigned vshader, fshader, sprogram;
-unsigned FBO, FBT, RBO;
-
-CAP_Layer canvasMainLayer;
-
-bool testExport = false;
-
-typedef struct
+typedef struct Cap_CanvasCamera
 {
     ImVec2 pos;
     float zoom;
-} Cap_Camera ;
-
-typedef struct
-{
-    ImVec2 pos;
-    ImVec2 motion;
-    int scroll;
-    int buttonDown;
-} Cap_ForwardedMouse;
-
-//typedef struct
-//{
-//
-//} Cap_FowardedPen;
-
-Cap_Camera capcam;
+} Cap_Camera;
 
 typedef enum CAP_WINDOW_OPEN_STATUS
 {
@@ -70,8 +39,6 @@ typedef enum CAP_WINDOW_OPEN_STATUS
     WOS_COUNT
 } WINDOW_OPEN_STATUS; // shorted to WOS
 
-static bool* windowOpenStatus;
-
 typedef enum CAP_MENU_TRIGGER_ITEM
 {
     MTI_EXIT = 1,
@@ -85,16 +52,38 @@ typedef enum CAP_MENU_TRIGGER_ITEM
 
 } MENU_TRIGGER_ITEM;
 
-static bool* menuTrigger;
-
 void Exit();
+void SetupQuad();
+void SetupFramebuffer();
+void RenderCanvasContents();
+void DisplayWindowByStatus();
+
+SDL_Window* window = NULL;
+SDL_GLContext glCxt;
+
+ImVec2 lastCanvasSize = { 0, 0 };
+bool canvasWindowSizeChanged = false;
+
+unsigned VBO, VAO, EBO;
+unsigned vshader, fshader, sprogram;
+unsigned FBO, FBT, RBO;
+
+unsigned checkerboardPattern;
+
+CAP_Layer canvasMainLayer;
+
+bool testExport = false;
+
+bool* windowOpenStatus;
+bool* menuTrigger;
+Cap_Camera capcam;
 
 void ShowToolbarWindow(bool* p_open)
 {
     //https://github.com/ocornut/imgui/issues/2648
     if (igBegin("Toolbar##WindowToolbar", p_open, 0))
     {
-        igText("IM A TOOLBAR!!!");
+        //igText("IM A TOOLBAR!!!");
     }
     igEnd();
 }
@@ -103,7 +92,7 @@ void ShowBrushWindow(bool* p_open)
 { 
     if (igBegin("Brushes##WindowBrushes", p_open, 0))
     {
-        igText("IM BRUSHES!!!");
+        //igText("IM BRUSHES!!!");
     }
     igEnd();
 }
@@ -112,7 +101,7 @@ void ShowBrushSettingsWindow(bool* p_open)
 {
     if (igBegin("Brush Settings##WindowBrushSettings", p_open, 0))
     {
-        igText("IM BRUSH SETTINGS!!!");
+        //igText("IM BRUSH SETTINGS!!!");
     }
     igEnd();
 }
@@ -121,7 +110,7 @@ void ShowColorPickerWindow(bool* p_open)
 {
     if (igBegin("Color Picker##WindowColorPicker", p_open, 0))
     {
-        igText("IM COLOR PICKER!!!");
+        //igText("IM COLOR PICKER!!!");
     }
     igEnd();
 }
@@ -130,7 +119,7 @@ void ShowLayersWindow(bool* p_open)
 {
     if (igBegin("Layers##WindowLayers", p_open, 0))
     {
-        igText("IM LAYERS!!!");
+        //igText("IM LAYERS!!!");
     }
     igEnd();
 }
@@ -139,7 +128,7 @@ void ShowPreviewWindow(bool* p_open)
 {
     if (igBegin("Preview##WindowPreview", p_open, 0))
     {
-        igText("IM PREVIEW!!!");
+        //igText("IM PREVIEW!!!");
     }
     igEnd();
 }
@@ -148,7 +137,7 @@ void ShowHistoryWindow(bool* p_open)
 {
     if (igBegin("History##WindowHistory", p_open, 0))
     {
-        igText("IM HISTORY!!!");
+        //igText("IM HISTORY!!!");
     }
     igEnd();
 }
@@ -242,6 +231,44 @@ void ShowCanvasWindow(bool* p_open)
 // Initialize all systems
 int Init()
 {
+    windowOpenStatus = calloc(WOS_COUNT, sizeof(bool));
+    if (windowOpenStatus)
+    {
+        int i = 0;
+        for (i = 0; i < WOS_COUNT; ++i)
+        {
+            windowOpenStatus[i] = false;
+        }
+        windowOpenStatus[WOS_TOOLBAR] = true;
+        windowOpenStatus[WOS_BRUSHES] = true;
+        windowOpenStatus[WOS_BRUSHSETTINGS] = true;
+        windowOpenStatus[WOS_COLORPICKER] = true;
+        windowOpenStatus[WOS_CANVAS] = true;
+        windowOpenStatus[WOS_LAYERS] = true;
+        windowOpenStatus[WOS_PREVIEW] = true;
+        windowOpenStatus[WOS_HISTORY] = true;
+    }
+    else
+    {
+        printf("Could not allocate windowOpenStatus[%i]", WOS_COUNT);
+        return -1;
+    }
+
+    menuTrigger = calloc(MTI_COUNT, sizeof(bool));
+    if (menuTrigger)
+    {
+        int i = 0;
+        for (i = 1; i < MTI_COUNT; ++i)
+        {
+            menuTrigger[i] = false;
+        }
+    }
+    else
+    {
+        printf("Could not allocate menuTrigger[%i]", MTI_COUNT);
+        return -1;
+    }
+
     if (!SDL_Init(SDL_INIT_VIDEO | SDL_INIT_EVENTS))
     {
         print_err("Failed to initialize SDL: %s\n", SDL_GetError());
@@ -303,59 +330,16 @@ int Init()
     igCreateContext(NULL);
     // Initialize ImGui context
     ImGuiIO* io = igGetIO();
-    io->DisplaySize.x = INITIAL_WINDOW_WIDTH; // Set these dynamically based on window size
+    io->DisplaySize.x = INITIAL_WINDOW_WIDTH; 
     io->DisplaySize.y = INITIAL_WINDOW_HEIGHT;
-    io->ConfigFlags |= ImGuiConfigFlags_DockingEnable;           // Enable Docking
-    io->ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;         // Enable Multi-Viewport / Platform Windows
+    io->ConfigFlags |= ImGuiConfigFlags_DockingEnable;
+    io->ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;
     ImGuiStyle* style = igGetStyle();
     igStyleColorsDark(style);
+    // probably have a style file or smth
     style->WindowMenuButtonPosition = ImGuiDir_None;
     ImGui_ImplSDL3_InitForOpenGL(window, &glCxt);
     ImGui_ImplOpenGL3_Init(glsl_version);
-
-    windowOpenStatus = calloc(WOS_COUNT, sizeof(bool));
-    if (windowOpenStatus)
-    {
-        int i = 0;
-        for (i = 0; i < WOS_COUNT; ++i)
-        {
-            windowOpenStatus[i] = false;
-        }
-        windowOpenStatus[WOS_TOOLBAR] = true;
-        windowOpenStatus[WOS_BRUSHES] = true;
-        windowOpenStatus[WOS_BRUSHSETTINGS] = true;
-        windowOpenStatus[WOS_COLORPICKER] = true;
-        windowOpenStatus[WOS_CANVAS] = true;
-        windowOpenStatus[WOS_LAYERS] = true;
-        windowOpenStatus[WOS_PREVIEW] = true;
-        windowOpenStatus[WOS_HISTORY] = true;
-    }
-    else
-    {
-        printf("Could not allocate windowOpenStatus[%i]", WOS_COUNT);
-        SDL_GL_DestroyContext(glCxt);
-        SDL_DestroyWindow(window);
-        SDL_Quit();
-        return -1;
-    }
-
-    menuTrigger = calloc(MTI_COUNT, sizeof(bool));
-    if (menuTrigger)
-    {
-        int i = 0;
-        for (i = 1; i < MTI_COUNT; ++i)
-        {
-            menuTrigger[i] = false;
-        }
-    }
-    else
-    {
-        printf("Could not allocate menuTrigger[%i]", MTI_COUNT);
-        SDL_GL_DestroyContext(glCxt);
-        SDL_DestroyWindow(window);
-        SDL_Quit();
-        return -1;
-    }
 
     if (Cap_SetupShaders("VERTEX_SHADER.vert", "FRAGMENT_SHADER.frag", &vshader, &fshader, &sprogram))
     {
@@ -363,86 +347,34 @@ int Init()
         return -1;
     }
 
-    float vertices[] = {
-        -0.5f, -0.5f, 0.0f, 0.0f, 1.0f,
-         0.5f, -0.5f, 0.0f, 1.0f, 1.0f,
-         0.5f,  0.5f, 0.0f, 1.0f, 0.0f,
-         0.5f,  0.5f, 0.0f, 1.0f, 0.0f,
-        -0.5f,  0.5f, 0.0f, 0.0f, 0.0f,
-        -0.5f, -0.5f, 0.0f, 0.0f, 1.0f,
-    };
+    SetupQuad();
+    SetupFramebuffer();
 
-    glGenBuffers(1, &VBO);
-    glGenBuffers(1, &EBO);
-    glGenVertexArrays(1, &VAO);
-    glGenFramebuffers(1, &FBO);
-
-    glBindFramebuffer(GL_FRAMEBUFFER, FBO);
-
-    glBindVertexArray(VAO);
-    glBindBuffer(GL_ARRAY_BUFFER, VBO);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
-    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
-    glEnableVertexAttribArray(0);
-    glEnableVertexAttribArray(1);
-
-    glGenTextures(1, &FBT);
-    glBindTexture(GL_TEXTURE_2D, FBT);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 800, 600, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-
-    glBindTexture(GL_TEXTURE_2D, 0);
-    glBindVertexArray(0);
-
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, FBT, 0);
-
-    capcam.pos = (ImVec2){0.0f,0.0f};
+    capcam.pos = (ImVec2){ 0.0f,0.0f };
     capcam.zoom = 1.0f;
-
-    if (glCheckFramebufferStatus(GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE)
-    {
-        // it works!
-        print_wng("[INIT] Framebuffer complete.\n");
-    }
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);
     
     mat4 model = GLM_MAT4_IDENTITY_INIT;
-    glmc_translate(model, (vec3) { 0.0f, 0.0f, 0.0f });
-
     mat4 view = GLM_MAT4_IDENTITY_INIT;
-
     mat4 proj = GLM_MAT4_IDENTITY_INIT;
     glmc_ortho(-(INITIAL_WINDOW_WIDTH / 2.0f), INITIAL_WINDOW_WIDTH / 2.0f, -(INITIAL_WINDOW_HEIGHT / 2.0f), (INITIAL_WINDOW_HEIGHT / 2.0f), -0.1f, 100.f, proj);
 
     glUseProgram(sprogram);
-
-    glUniformMatrix4fv(glGetUniformLocation(sprogram, "model"), 1, GL_FALSE, model[0]);
-    glUniformMatrix4fv(glGetUniformLocation(sprogram, "view"), 1, GL_FALSE, view[0]);
-    glUniformMatrix4fv(glGetUniformLocation(sprogram, "proj"), 1, GL_FALSE, proj[0]);
-
+    Cap_ShaderSetMat4(sprogram, "model", model[0]);
+    Cap_ShaderSetMat4(sprogram, "view", view[0]);
+    Cap_ShaderSetMat4(sprogram, "proj", proj[0]);
     glUseProgram(0);
 
-    canvasMainLayer = Cap_CreateLayer(200, 100);
+    canvasMainLayer = Cap_CreateLayer(100, 100);
     unsigned temp1 = canvasMainLayer.width * canvasMainLayer.height;
     unsigned int temp;
     for (temp = 0; temp < temp1; temp++)
     {
-        canvasMainLayer.data[temp].r = 0.00f + 0.0001f * temp;
-        canvasMainLayer.data[temp].g = 0.00f;
-        canvasMainLayer.data[temp].b = 0.05f + 0.005f * (temp % canvasMainLayer.width);
-        canvasMainLayer.data[temp].a = 1.00f;
+        canvasMainLayer.data[temp].r = 1.f;
+        canvasMainLayer.data[temp].g = 1.f;
+        canvasMainLayer.data[temp].b = 1.f;
+        canvasMainLayer.data[temp].a = 1.f;
     }
-
-    glGenTextures(1, &canvasMainLayer.textureId);
-    glBindTexture(GL_TEXTURE_2D, canvasMainLayer.textureId);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, canvasMainLayer.width, canvasMainLayer.height, 0, GL_RGBA, GL_FLOAT, (void*)canvasMainLayer.data);
-    glBindTexture(GL_TEXTURE_2D, 0);
+    Cap_RefreshLayerImage(&canvasMainLayer);
 
     return 0;
 }
@@ -510,6 +442,8 @@ void Run()
         }
         if (menuTrigger[MTI_OPEN_IMAGE])
         {
+            // int r = Cap_OpenImageToLayer(Layer);
+            // if (!r) Cap_RefreshLayerImage(&Layer);
             nfdchar_t* location = NULL;
             nfdresult_t r = NFD_OpenDialog("png,jpg;psd", NULL, &location);
             if (r == NFD_OKAY)
@@ -534,15 +468,11 @@ void Run()
                     result[i].a = imageData[i * 4 + 3] / 255.0f; // Alpha
                 }
                 // Set the width and height for the caller
-                //*width = (unsigned)w;
-                //*height = (unsigned)h;
 
                 Cap_ReplaceLayer(&canvasMainLayer, w, h);
                 free(canvasMainLayer.data);
                 canvasMainLayer.data = result;
-                glBindTexture(GL_TEXTURE_2D, canvasMainLayer.textureId);
-                glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, canvasMainLayer.width, canvasMainLayer.height, 0, GL_RGBA, GL_FLOAT, (void*)canvasMainLayer.data);
-                glBindTexture(GL_TEXTURE_2D, 0);
+                Cap_RefreshLayerImage(&canvasMainLayer);
 
                 // Free the raw image data from stb_image
                 stbi_image_free(imageData);
@@ -641,45 +571,7 @@ void Run()
         }
         igEnd();
         
-        if (windowOpenStatus[WOS_TOOLBAR])
-        {
-            ShowToolbarWindow(&windowOpenStatus[WOS_TOOLBAR]);
-        }
-
-        if (windowOpenStatus[WOS_BRUSHES])
-        {
-            ShowBrushWindow(&windowOpenStatus[WOS_BRUSHES]);
-        }
-
-        if (windowOpenStatus[WOS_BRUSHSETTINGS])
-        {
-            ShowBrushSettingsWindow(&windowOpenStatus[WOS_BRUSHSETTINGS]);
-        }
-
-        if (windowOpenStatus[WOS_COLORPICKER])
-        {
-            ShowColorPickerWindow(&windowOpenStatus[WOS_COLORPICKER]);
-        }
-
-        if (windowOpenStatus[WOS_CANVAS])
-        {
-            ShowCanvasWindow(&windowOpenStatus[WOS_CANVAS]);
-        }
-
-        if (windowOpenStatus[WOS_LAYERS])
-        {
-            ShowLayersWindow(&windowOpenStatus[WOS_LAYERS]);
-        }
-
-        if (windowOpenStatus[WOS_PREVIEW])
-        {
-            ShowPreviewWindow(&windowOpenStatus[WOS_PREVIEW]);
-        }
-
-        if (windowOpenStatus[WOS_HISTORY])
-        {
-            ShowHistoryWindow(&windowOpenStatus[WOS_HISTORY]);
-        }
+        DisplayWindowByStatus();
 
         // render
         igRender();
@@ -695,31 +587,123 @@ void Run()
             SDL_GL_MakeCurrent(backup_current_window, backup_current_context);
         }
 
-        glViewport(0, 0, (int)lastCanvasSize.x, (int)lastCanvasSize.y);
-
-        glBindFramebuffer(GL_FRAMEBUFFER, FBO);
-
-        glClearColor(0.11f, 0.123f, 0.13f, 1.0f);
-        glClear(GL_COLOR_BUFFER_BIT);
-
-        glUseProgram(sprogram);
-        mat4 model = GLM_MAT4_IDENTITY_INIT;
-        glmc_scale(model, (vec3) { canvasMainLayer.width, canvasMainLayer.height, 1.0f });
-        glUniformMatrix4fv(glGetUniformLocation(sprogram, "model"), 1, GL_FALSE, model[0]);
-        mat4 view = GLM_MAT4_IDENTITY_INIT;
-        glmc_translate(view, (vec3) { capcam.pos.x, capcam.pos.y, 0.0f });
-        glmc_scale(view, (vec3) { 1.0f * capcam.zoom, 1.0f * capcam.zoom, 1.0f });
-        glUniformMatrix4fv(glGetUniformLocation(sprogram, "view"), 1, GL_FALSE, view[0]);
-        glBindTexture(GL_TEXTURE_2D, canvasMainLayer.textureId);
-        glBindVertexArray(VAO);
-        glDrawArrays(GL_TRIANGLES, 0, 6);
-        glBindVertexArray(0);
-        glUseProgram(0);
-
-        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+        RenderCanvasContents();
 
         SDL_GL_SwapWindow(window);
     }
+}
+
+void SetupQuad()
+{
+    float vertices[] = {
+        -0.5f, -0.5f, 0.0f, 0.0f, 1.0f,
+         0.5f, -0.5f, 0.0f, 1.0f, 1.0f,
+         0.5f,  0.5f, 0.0f, 1.0f, 0.0f,
+         0.5f,  0.5f, 0.0f, 1.0f, 0.0f,
+        -0.5f,  0.5f, 0.0f, 0.0f, 0.0f,
+        -0.5f, -0.5f, 0.0f, 0.0f, 1.0f,
+    };
+
+    glGenBuffers(1, &VBO);
+    glGenBuffers(1, &EBO);
+    glGenVertexArrays(1, &VAO);
+    glGenFramebuffers(1, &FBO);
+
+    glBindFramebuffer(GL_FRAMEBUFFER, FBO);
+
+    glBindVertexArray(VAO);
+    glBindBuffer(GL_ARRAY_BUFFER, VBO);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
+    glEnableVertexAttribArray(0);
+    glEnableVertexAttribArray(1);
+}
+
+void SetupFramebuffer()
+{
+    glGenTextures(1, &FBT);
+    glBindTexture(GL_TEXTURE_2D, FBT);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 800, 600, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+
+    glBindTexture(GL_TEXTURE_2D, 0);
+    glBindVertexArray(0);
+
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, FBT, 0);
+
+    if (glCheckFramebufferStatus(GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE)
+    {
+        // it works!
+        print_wng("[INIT] Framebuffer complete.\n");
+    }
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+}
+
+void DisplayWindowByStatus()
+{
+    if (windowOpenStatus[WOS_TOOLBAR])
+    {
+        ShowToolbarWindow(&windowOpenStatus[WOS_TOOLBAR]);
+    }
+
+    if (windowOpenStatus[WOS_BRUSHES])
+    {
+        ShowBrushWindow(&windowOpenStatus[WOS_BRUSHES]);
+    }
+
+    if (windowOpenStatus[WOS_BRUSHSETTINGS])
+    {
+        ShowBrushSettingsWindow(&windowOpenStatus[WOS_BRUSHSETTINGS]);
+    }
+
+    if (windowOpenStatus[WOS_COLORPICKER])
+    {
+        ShowColorPickerWindow(&windowOpenStatus[WOS_COLORPICKER]);
+    }
+
+    if (windowOpenStatus[WOS_CANVAS])
+    {
+        ShowCanvasWindow(&windowOpenStatus[WOS_CANVAS]);
+    }
+
+    if (windowOpenStatus[WOS_LAYERS])
+    {
+        ShowLayersWindow(&windowOpenStatus[WOS_LAYERS]);
+    }
+
+    if (windowOpenStatus[WOS_PREVIEW])
+    {
+        ShowPreviewWindow(&windowOpenStatus[WOS_PREVIEW]);
+    }
+
+    if (windowOpenStatus[WOS_HISTORY])
+    {
+        ShowHistoryWindow(&windowOpenStatus[WOS_HISTORY]);
+    }
+}
+
+void RenderCanvasContents()
+{
+    glViewport(0, 0, (int)lastCanvasSize.x, (int)lastCanvasSize.y);
+    glBindFramebuffer(GL_FRAMEBUFFER, FBO);
+    glClearColor(0.11f, 0.123f, 0.13f, 1.0f);
+    glClear(GL_COLOR_BUFFER_BIT);
+    glUseProgram(sprogram);
+    mat4 model = GLM_MAT4_IDENTITY_INIT;
+    glmc_scale(model, (vec3) { (float)canvasMainLayer.width, (float)canvasMainLayer.height, 1.0f });
+    glUniformMatrix4fv(glGetUniformLocation(sprogram, "model"), 1, GL_FALSE, model[0]);
+    mat4 view = GLM_MAT4_IDENTITY_INIT;
+    glmc_translate(view, (vec3) { capcam.pos.x, capcam.pos.y, 0.0f });
+    glmc_scale(view, (vec3) { 1.0f * capcam.zoom, 1.0f * capcam.zoom, 1.0f });
+    glUniformMatrix4fv(glGetUniformLocation(sprogram, "view"), 1, GL_FALSE, view[0]);
+    glBindTexture(GL_TEXTURE_2D, canvasMainLayer.textureId);
+    glBindVertexArray(VAO);
+    glDrawArrays(GL_TRIANGLES, 0, 6);
+    glBindVertexArray(0);
+    glUseProgram(0);
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
 // Clean up the program's memory usage

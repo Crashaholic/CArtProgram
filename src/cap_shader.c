@@ -78,3 +78,8 @@ int Cap_SetupShaders(const char* vsFile, const char* fsFile, unsigned* vs, unsig
     glDeleteShader(*fs);
     return 0;
 }
+
+void Cap_ShaderSetMat4(unsigned program, const char* uniform, float* p)
+{
+    glUniformMatrix4fv(glGetUniformLocation(program, uniform), 1, GL_FALSE, p);
+}

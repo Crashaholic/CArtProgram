@@ -21,5 +21,6 @@ typedef enum CAP_LAYER_BLEND_OPTIONS
 
 CAP_Layer Cap_CreateLayer(unsigned int width, unsigned int height);
 void Cap_ReplaceLayer(CAP_Layer* target, unsigned int newWidth, unsigned int newHeight);
+void Cap_RefreshLayerImage(CAP_Layer* layer);
 
 #endif

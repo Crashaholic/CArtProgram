@@ -3,6 +3,8 @@
 #include <stdlib.h>
 #include <stdio.h>
 
+#include <glad/glad.h>
+
 CAP_Layer Cap_CreateLayer(unsigned int width, unsigned int height)
 {
     CAP_Layer ret;
@@ -14,7 +16,23 @@ CAP_Layer Cap_CreateLayer(unsigned int width, unsigned int height)
     ret.width = width;
     ret.height = height;
 
+    glGenTextures(1, &ret.textureId);
+    glBindTexture(GL_TEXTURE_2D, ret.textureId);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, ret.width, ret.height, 0, GL_RGBA, GL_FLOAT, (void*)ret.data);
+    glBindTexture(GL_TEXTURE_2D, 0);
+
     return ret;
+}
+
+void Cap_RefreshLayerImage(CAP_Layer* layer)
+{
+    glBindTexture(GL_TEXTURE_2D, layer->textureId);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, layer->width, layer->height, 0, GL_RGBA, GL_FLOAT, (void*)layer->data);
+    glBindTexture(GL_TEXTURE_2D, 0);
 }
 
 void Cap_ReplaceLayer(CAP_Layer* target, unsigned int newWidth, unsigned int newHeight)

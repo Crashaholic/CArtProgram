@@ -1,8 +1,6 @@
 #ifndef CAP_PIXEL_H
 #define CAP_PIXEL_H
 
-#include <stdint.h>
-
 typedef struct CAP_PixelRGBA
 {
     float r, g, b, a;
