@@ -648,6 +648,9 @@ void Run()
                 Cap_ReplaceLayer(&canvasMainLayer, w, h);
                 free(canvasMainLayer.data);
                 canvasMainLayer.data = result;
+                glBindTexture(GL_TEXTURE_2D, canvasMainLayer.textureId);
+                glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, canvasMainLayer.width, canvasMainLayer.height, 0, GL_RGBA, GL_FLOAT, (void*)canvasMainLayer.data);
+                glBindTexture(GL_TEXTURE_2D, 0);
 
                 // Free the raw image data from stb_image
                 stbi_image_free(imageData);
