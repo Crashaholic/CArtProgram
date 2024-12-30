@@ -88,6 +88,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="cap_progwindows.c" />
     <ClCompile Include="stb_image.c" />
     <ClCompile Include="stb_image_write.c" />
     <ClInclude Include="cap_filemanip.h" />

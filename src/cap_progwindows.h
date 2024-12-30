@@ -5,6 +5,12 @@
 #include <cimgui.h>
 #include <cimgui_impl.h>
 
+typedef struct Cap_CanvasCamera
+{
+    ImVec2 pos;
+    float zoom;
+} Cap_Camera;
+
 void ShowToolbarWindow(bool* p_open);
 void ShowBrushWindow(bool* p_open);
 void ShowBrushSettingsWindow(bool* p_open);
@@ -12,6 +18,6 @@ void ShowColorPickerWindow(bool* p_open);
 void ShowLayersWindow(bool* p_open);
 void ShowPreviewWindow(bool* p_open);
 void ShowHistoryWindow(bool* p_open);
-void ShowCanvasWindow(bool* p_open);
+void ShowCanvasWindow(bool* p_open, bool* canvasWindowSizeChanged, unsigned FBT, ImVec2* lastCanvasSize, Cap_Camera* capcam);
 
 #endif

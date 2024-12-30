@@ -15,12 +15,6 @@
 #define INITIAL_WINDOW_WIDTH 1280
 #define INITIAL_WINDOW_HEIGHT 720
 
-typedef struct Cap_CanvasCamera
-{
-    ImVec2 pos;
-    float zoom;
-} Cap_Camera;
-
 typedef enum CAP_WINDOW_OPEN_STATUS
 {
     WOS_TOOLBAR,
@@ -72,157 +66,6 @@ bool testExport = false;
 bool* windowOpenStatus;
 bool* menuTrigger;
 Cap_Camera capcam;
-
-void ShowToolbarWindow(bool* p_open)
-{
-    //https://github.com/ocornut/imgui/issues/2648
-    if (igBegin("Toolbar##WindowToolbar", p_open, 0))
-    {
-        //igText("IM A TOOLBAR!!!");
-    }
-    igEnd();
-}
-
-void ShowBrushWindow(bool* p_open)
-{ 
-    if (igBegin("Brushes##WindowBrushes", p_open, 0))
-    {
-        //igText("IM BRUSHES!!!");
-    }
-    igEnd();
-}
-
-void ShowBrushSettingsWindow(bool* p_open)
-{
-    if (igBegin("Brush Settings##WindowBrushSettings", p_open, 0))
-    {
-        //igText("IM BRUSH SETTINGS!!!");
-    }
-    igEnd();
-}
-
-void ShowColorPickerWindow(bool* p_open)
-{
-    if (igBegin("Color Picker##WindowColorPicker", p_open, 0))
-    {
-        //igText("IM COLOR PICKER!!!");
-    }
-    igEnd();
-}
-
-void ShowLayersWindow(bool* p_open)
-{
-    if (igBegin("Layers##WindowLayers", p_open, 0))
-    {
-        //igText("IM LAYERS!!!");
-    }
-    igEnd();
-}
-
-void ShowPreviewWindow(bool* p_open)
-{
-    if (igBegin("Preview##WindowPreview", p_open, 0))
-    {
-        //igText("IM PREVIEW!!!");
-    }
-    igEnd();
-}
-
-void ShowHistoryWindow(bool* p_open)
-{
-    if (igBegin("History##WindowHistory", p_open, 0))
-    {
-        //igText("IM HISTORY!!!");
-    }
-    igEnd();
-}
-
-void ShowCanvasWindow(bool* p_open)
-{
-    ImGuiIO* io = igGetIO(); // Access ImGui's IO system for mouse position
-    igPushStyleVar_Vec2(ImGuiStyleVar_WindowPadding, (ImVec2){ 0.0f, 0.0f });
-    if (igBegin("Canvas##WindowCanvas", p_open, 0))
-    {
-        ImVec2 getCursorScreenPos;
-        igGetCursorScreenPos(&getCursorScreenPos);
-
-        ImVec2 boundsMin = { 0.0f, 0.0f };
-        ImVec2 boundsMax = { 0.0f, 0.0f };
-
-        ImVec2 regionAvail; igGetContentRegionAvail(&regionAvail);
-
-        boundsMin.x = getCursorScreenPos.x;
-        boundsMin.y = getCursorScreenPos.y;
-        boundsMax.x = getCursorScreenPos.x + regionAvail.x;
-        boundsMax.y = getCursorScreenPos.y + regionAvail.y;
-
-        ImVec2 mp = io->MousePos;
-
-        SDL_Cursor* DRAG_CURSOR = SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_MOVE);
-        SDL_Cursor* DFLT_CURSOR = SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_DEFAULT);
-        if (mp.x > boundsMin.x && mp.x < boundsMax.x)
-        {
-            if (mp.y > boundsMin.y && mp.y < boundsMax.y)
-            {
-                if (io->MouseDown[2])
-                {
-                    SDL_SetCursor(DRAG_CURSOR);
-                    capcam.pos.x += io->MouseDelta.x;
-                    capcam.pos.y -= io->MouseDelta.y;
-                }
-                else
-                {
-                    SDL_SetCursor(DFLT_CURSOR);
-                }
-
-                // TODO: RELATIVE ZOOMING
-                if (io->MouseWheel > 0.f && io->MouseWheel > FLT_EPSILON)
-                {
-                    if (io->KeyCtrl)
-                    {
-                        if (capcam.zoom + 0.5f > 20.0f)
-                            capcam.zoom = 20.0f;
-                        else
-                            capcam.zoom += 0.5f;
-                    }
-                }
-                else if (io->MouseWheel < 0.f && io->MouseWheel < FLT_EPSILON)
-                {
-                    if (io->KeyCtrl)
-                    {
-                        if ((capcam.zoom - 0.5f) > 0.0f)
-                        {
-                            capcam.zoom -= 0.5f;
-                        }
-                        else
-                        {
-                            capcam.zoom = 0.1f;
-                        }
-                    }
-                }
-            }
-            else
-            {
-                SDL_SetCursor(DFLT_CURSOR);
-            }
-        }
-        else
-        {
-            SDL_SetCursor(DFLT_CURSOR);
-        }
-
-        if (lastCanvasSize.x != regionAvail.x || lastCanvasSize.y != regionAvail.y)
-        {
-            canvasWindowSizeChanged = true;
-            lastCanvasSize.x = regionAvail.x;
-            lastCanvasSize.y = regionAvail.y;
-        }
-
-        ImDrawList_AddImage(igGetWindowDrawList(), FBT, boundsMin, boundsMax, (ImVec2) { 0, 1 }, (ImVec2) { 1, 0 },(255 << 24) | (255 << 16) | (255 << 8) | (255));
-    }
-    igEnd();
-    igPopStyleVar(1);
-}
 
 // Initialize all systems
 int Init()
@@ -607,7 +450,11 @@ void DisplayWindowByStatus()
 
     if (windowOpenStatus[WOS_CANVAS])
     {
-        ShowCanvasWindow(&windowOpenStatus[WOS_CANVAS]);
+        ShowCanvasWindow(&windowOpenStatus[WOS_CANVAS]
+            , &canvasWindowSizeChanged
+            , FBT
+            , &lastCanvasSize
+            , &capcam);
     }
 
     if (windowOpenStatus[WOS_LAYERS])
