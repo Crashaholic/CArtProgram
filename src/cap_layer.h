@@ -19,8 +19,8 @@ typedef enum CAP_LAYER_BLEND_OPTIONS
     LBOP_COUNT
 }LAYER_BLEND_OPTIONS;
 
-CAP_Layer Cap_CreateLayer(unsigned int width, unsigned int height);
-void Cap_ReplaceLayer(CAP_Layer* target, unsigned int newWidth, unsigned int newHeight);
-void Cap_RefreshLayerImage(CAP_Layer* layer);
+CAP_Layer Cap_LayerCreate(unsigned int width, unsigned int height);
+void Cap_LayerReplace(CAP_Layer* target, unsigned int newWidth, unsigned int newHeight);
+void Cap_LayerRefreshImage(CAP_Layer* layer);
 
 #endif

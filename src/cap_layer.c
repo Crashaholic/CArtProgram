@@ -5,7 +5,7 @@
 
 #include <glad/glad.h>
 
-CAP_Layer Cap_CreateLayer(unsigned int width, unsigned int height)
+CAP_Layer Cap_LayerCreate(unsigned int width, unsigned int height)
 {
     CAP_Layer ret;
     
@@ -28,19 +28,19 @@ CAP_Layer Cap_CreateLayer(unsigned int width, unsigned int height)
     return ret;
 }
 
-void Cap_RefreshLayerImage(CAP_Layer* layer)
+void Cap_LayerRefreshImage(CAP_Layer* layer)
 {
     glBindTexture(GL_TEXTURE_2D, layer->textureId);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, layer->width, layer->height, 0, GL_RGBA, GL_FLOAT, (void*)layer->data);
     glBindTexture(GL_TEXTURE_2D, 0);
 }
 
-void Cap_ReplaceLayer(CAP_Layer* target, unsigned int newWidth, unsigned int newHeight)
+void Cap_LayerReplace(CAP_Layer* target, unsigned int newWidth, unsigned int newHeight)
 {
     CAP_PixelRGBA* temp = malloc(newWidth * newHeight * sizeof(CAP_PixelRGBA));
     if (!temp)
     {
-        fprintf(stderr, "could not allocate for Cap_ReplaceLayer");
+        fprintf(stderr, "could not allocate for Cap_LayerReplace");
         return;
     }
     int x = 0, y = 0;

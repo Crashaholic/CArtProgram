@@ -92,6 +92,7 @@
     <ClCompile Include="stb_image_write.c" />
     <ClInclude Include="cap_filemanip.h" />
     <ClInclude Include="cap_logging.h" />
+    <ClInclude Include="cap_progwindows.h" />
     <ClInclude Include="cap_shader.h" />
     <ClCompile Include="cap_filemanip.c" />
     <ClCompile Include="cap_layer.c" />

@@ -2,17 +2,17 @@
 
 #include <glad/glad.h>
 
-FILE* Cap_OpenShaderFile(const char* loc)
+FILE* Cap_ShaderOpenFile(const char* loc)
 {
-	return Cap_OpenFile(loc, "r");
+	return Cap_FileIOOpen(loc, "r");
 }
 
 char* Cap_ShaderGetContentFromFile(const char* loc)
 {
-	return Cap_GetContentFromFile(loc, "r");
+	return Cap_FileIOGetContent(loc, "r");
 }
 
-int Cap_SetupShaders(const char* vsFile, const char* fsFile, unsigned* vs, unsigned* fs, unsigned* sp)
+int Cap_ShaderSetup(const char* vsFile, const char* fsFile, unsigned* vs, unsigned* fs, unsigned* sp)
 {
     char* s = Cap_ShaderGetContentFromFile(vsFile);
     if (!s)

@@ -1,17 +1,12 @@
 #include <SDL3/SDL.h>
-//#include <SDL3/SDL_main.h> // will uncomment when i do meet a problematic evildoer
 #include <glad/glad.h>
-#define CIMGUI_DEFINE_ENUMS_AND_STRUCTS
-#include <cimgui.h>
-#include <cimgui_impl.h>
 
+#include "cap_progwindows.h"
 #include "cap_layer.h"
 #include "cap_shader.h"
 #include "cap_math.h"
 #include "cap_logging.h"
-
-#include <stb_image.h>
-#include <stb_image_write.h>
+//#include <SDL3/SDL_main.h> // will uncomment when i do meet a problematic evildoer
 
 // resources:
 // https://www.codingwiththomas.com/blog/rendering-an-opengl-framebuffer-into-a-dear-imgui-window
@@ -180,6 +175,7 @@ void ShowCanvasWindow(bool* p_open)
                     SDL_SetCursor(DFLT_CURSOR);
                 }
 
+                // TODO: RELATIVE ZOOMING
                 if (io->MouseWheel > 0.f && io->MouseWheel > FLT_EPSILON)
                 {
                     if (io->KeyCtrl)
@@ -341,7 +337,7 @@ int Init()
     ImGui_ImplSDL3_InitForOpenGL(window, &glCxt);
     ImGui_ImplOpenGL3_Init(glsl_version);
 
-    if (Cap_SetupShaders("VERTEX_SHADER.vert", "FRAGMENT_SHADER.frag", &vshader, &fshader, &sprogram))
+    if (Cap_ShaderSetup("res/VERTEX_SHADER.vert", "res/FRAGMENT_SHADER.frag", &vshader, &fshader, &sprogram))
     {
         Exit();
         return -1;
@@ -364,7 +360,7 @@ int Init()
     Cap_ShaderSetMat4(sprogram, "proj", proj[0]);
     glUseProgram(0);
 
-    canvasMainLayer = Cap_CreateLayer(100, 100);
+    canvasMainLayer = Cap_LayerCreate(1, 1);
     unsigned temp1 = canvasMainLayer.width * canvasMainLayer.height;
     unsigned int temp;
     for (temp = 0; temp < temp1; temp++)
@@ -374,7 +370,7 @@ int Init()
         canvasMainLayer.data[temp].b = 1.f;
         canvasMainLayer.data[temp].a = 1.f;
     }
-    Cap_RefreshLayerImage(&canvasMainLayer);
+    Cap_LayerRefreshImage(&canvasMainLayer);
 
     return 0;
 }
@@ -423,68 +419,14 @@ void Run()
 
         if (menuTrigger[MTI_EXPORT_CANVAS])
         {
-            nfdchar_t* location = NULL;
-            nfdresult_t r = NFD_SaveDialog("png,jpg;psd", NULL, &location);
-            if (r == NFD_OKAY)
-            {
-                Cap_WriteCanvasToFile(location, canvasMainLayer.data, canvasMainLayer.width, canvasMainLayer.height);
-                free(location);
-            }
-            else if (r == NFD_CANCEL)
-            {
-                printf("user cancelled.\n");
-            }
-            else 
-            {
-                printf("Error: %s\n", NFD_GetError());
-            }
+            Cap_FileIOExportFromLayer(&canvasMainLayer);
             menuTrigger[MTI_EXPORT_CANVAS] = false;
         }
         if (menuTrigger[MTI_OPEN_IMAGE])
         {
-            // int r = Cap_OpenImageToLayer(Layer);
-            // if (!r) Cap_RefreshLayerImage(&Layer);
-            nfdchar_t* location = NULL;
-            nfdresult_t r = NFD_OpenDialog("png,jpg;psd", NULL, &location);
-            if (r == NFD_OKAY)
-            {
-                int w, h, channels;
-                unsigned char* imageData = stbi_load(location, &w, &h, &channels, 4); // Force 4 channels (RGBA)
-                if (!imageData) 
-                {
-                    fprintf(stderr, "Failed to load image: %s\n", location);
-                }
-                CAP_PixelRGBA* result = (CAP_PixelRGBA*)malloc(w * h * sizeof(CAP_PixelRGBA));
-                if (!result) 
-                {
-                    fprintf(stderr, "Failed to allocate memory for pixel array\n");
-                    stbi_image_free(imageData);
-                }
-                for (int i = 0; i < w * h; ++i) 
-                {
-                    result[i].r = imageData[i * 4 + 0] / 255.0f; // Red
-                    result[i].g = imageData[i * 4 + 1] / 255.0f; // Green
-                    result[i].b = imageData[i * 4 + 2] / 255.0f; // Blue
-                    result[i].a = imageData[i * 4 + 3] / 255.0f; // Alpha
-                }
-                // Set the width and height for the caller
-
-                Cap_ReplaceLayer(&canvasMainLayer, w, h);
-                free(canvasMainLayer.data);
-                canvasMainLayer.data = result;
-                Cap_RefreshLayerImage(&canvasMainLayer);
-
-                // Free the raw image data from stb_image
-                stbi_image_free(imageData);
-            }
-            else if (r == NFD_CANCEL)
-            {
-                printf("user cancelled.\n");
-            }
-            else
-            {
-                printf("Error: %s\n", NFD_GetError());
-            }
+            // int r = Cap_FileIOOpenImageToLayer(Layer);
+            // if (!r) Cap_LayerRefreshImage(&Layer);
+            Cap_FileIOImportToLayer(&canvasMainLayer);
             menuTrigger[MTI_OPEN_IMAGE] = false;
         }
 
