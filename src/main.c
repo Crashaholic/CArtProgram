@@ -357,68 +357,11 @@ int Init()
         return -1;
     }
 
-    char* s = Cap_ShaderGetContentFromFile("VERTEX_SHADER.vert");
-    if (!s)
+    if (Cap_SetupShaders("VERTEX_SHADER.vert", "FRAGMENT_SHADER.frag", &vshader, &fshader, &sprogram))
     {
-        printf("Could not open VERTEX shader file!\n");
         Exit();
         return -1;
     }
-
-    vshader = glCreateShader(GL_VERTEX_SHADER);
-    glShaderSource(vshader, 1, &s, NULL);
-    glCompileShader(vshader);
-    {
-        int  success;
-        char infoLog[512] = {0};
-        glGetShaderiv(vshader, GL_COMPILE_STATUS, &success);
-
-        if (!success)
-        {
-            glGetShaderInfoLog(vshader, 512, NULL, infoLog);
-            printf("Could not compile VERTEX shader: \n%s\n", infoLog);
-        }
-    }
-
-    s = Cap_ShaderGetContentFromFile("FRAGMENT_SHADER.frag");
-    if (!s)
-    {
-        printf("Could not open FRAGMENT shader file!\n");
-        Exit();
-        return -1;
-    }
-
-    fshader = glCreateShader(GL_FRAGMENT_SHADER);
-    glShaderSource(fshader, 1, &s, NULL);
-    glCompileShader(fshader);
-    {
-        int  success;
-        char infoLog[512] = { 0 };
-        glGetShaderiv(fshader, GL_COMPILE_STATUS, &success);
-
-        if (!success)
-        {
-            glGetShaderInfoLog(fshader, 512, NULL, infoLog);
-            printf("Could not compile FRAGMENT shader: \n%s\n", infoLog);
-        }
-    }
-
-    sprogram = glCreateProgram();
-    glAttachShader(sprogram, vshader);
-    glAttachShader(sprogram, fshader);
-    glLinkProgram(sprogram);
-    {
-        int  success;
-        char infoLog[512] = { 0 };
-        glGetProgramiv(sprogram, GL_LINK_STATUS, &success);
-        if (!success) 
-        {
-            glGetProgramInfoLog(sprogram, 512, NULL, infoLog);
-            printf("Could not LINK SHADER: \n%s\n", infoLog);
-        }
-    }
-    glDeleteShader(vshader);
-    glDeleteShader(fshader);
 
     float vertices[] = {
         -0.5f, -0.5f, 0.0f, 0.0f, 1.0f,
@@ -496,8 +439,8 @@ int Init()
     glBindTexture(GL_TEXTURE_2D, canvasMainLayer.textureId);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, canvasMainLayer.width, canvasMainLayer.height, 0, GL_RGBA, GL_FLOAT, (void*)canvasMainLayer.data);
     glBindTexture(GL_TEXTURE_2D, 0);
 
@@ -511,27 +454,6 @@ void Run()
     SDL_Event ev;
     ImGuiWindowFlags dockspaceFlags = ImGuiDockNodeFlags_None;
     ImGuiWindowFlags defaultWindowFlags = 0;
-
-    float pressure = 0.0f;
-    float previous_touch_x = -1.0f;
-    float previous_touch_y = -1.0f;
-
-    /*
-    nfdchar_t *outPath = NULL;
-    nfdresult_t result = NFD_OpenDialog( NULL, NULL, &outPath );
-
-    if ( result == NFD_OKAY ) {
-        puts("Success!");
-        puts(outPath);
-        free(outPath);
-    }
-    else if ( result == NFD_CANCEL ) {
-        puts("User pressed cancel.");
-    }
-    else {
-        printf("Error: %s\n", NFD_GetError() );
-    }
-    */
 
     while (running)
     {
@@ -549,33 +471,6 @@ void Run()
                 // else
                 running = 0;
             }
-            //else if (ev.type == SDL_EVENT_PEN_MOTION)
-            //{
-            //    if (pressure > 0.0f) 
-            //    {
-            //        if (previous_touch_x >= 0.0f) 
-            //        {  /* only draw if we're moving while touching */
-            //            /* draw with the alpha set to the pressure, so you effectively get a fainter line for lighter presses. */
-            //            //SDL_SetRenderTarget(renderer, render_target);
-            //            //SDL_SetRenderDrawColorFloat(renderer, 0, 0, 0, pressure);
-            //            //SDL_RenderLine(renderer, previous_touch_x, previous_touch_y, event->pmotion.x, event->pmotion.y);
-            //            printf("HES DRAWING!!!!");
-            //        }
-            //        previous_touch_x = ev.pmotion.x;
-            //        previous_touch_y = ev.pmotion.y;
-            //    }
-            //    else {
-            //        previous_touch_x = previous_touch_y = -1.0f;
-            //    }
-
-            //}
-            //else if (ev.type == SDL_EVENT_PEN_AXIS)
-            //{
-            //    if (ev.paxis.axis == SDL_PEN_AXIS_PRESSURE) 
-            //    {
-            //        pressure = ev.paxis.value;  /* remember new pressure for later draws. */
-            //    }
-            //}
         }
 
         if (canvasWindowSizeChanged)
@@ -596,13 +491,11 @@ void Run()
 
         if (menuTrigger[MTI_EXPORT_CANVAS])
         {
-            printf("EXPORTING!!!!\n");
             nfdchar_t* location = NULL;
             nfdresult_t r = NFD_SaveDialog("png,jpg;psd", NULL, &location);
             if (r == NFD_OKAY)
             {
                 Cap_WriteCanvasToFile(location, canvasMainLayer.data, canvasMainLayer.width, canvasMainLayer.height);
-                puts(location);
                 free(location);
             }
             else if (r == NFD_CANCEL)
@@ -617,7 +510,6 @@ void Run()
         }
         if (menuTrigger[MTI_OPEN_IMAGE])
         {
-            printf("IMPORTING!!!!\n");
             nfdchar_t* location = NULL;
             nfdresult_t r = NFD_OpenDialog("png,jpg;psd", NULL, &location);
             if (r == NFD_OKAY)
