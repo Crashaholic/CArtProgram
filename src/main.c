@@ -6,12 +6,14 @@
 #define CIMGUI_DEFINE_ENUMS_AND_STRUCTS
 #include <cimgui.h>
 #include <cimgui_impl.h>
-#include <stdint.h>
 
 #include "cap_layer.h"
 #include "cap_shader.h"
 #include "cap_math.h"
 #include "cap_logging.h"
+
+#include <stb_image.h>
+#include <stb_image_write.h>
 
 // resources:
 // https://www.codingwiththomas.com/blog/rendering-an-opengl-framebuffer-into-a-dear-imgui-window
@@ -55,7 +57,7 @@ typedef struct
 
 Cap_Camera capcam;
 
-typedef enum
+typedef enum CAP_WINDOW_OPEN_STATUS
 {
     WOS_TOOLBAR,
     WOS_BRUSHES,
@@ -69,6 +71,21 @@ typedef enum
 } WINDOW_OPEN_STATUS; // shorted to WOS
 
 static bool* windowOpenStatus;
+
+typedef enum CAP_MENU_TRIGGER_ITEM
+{
+    MTI_EXIT = 1,
+    MTI_NEW_IMAGE,
+    MTI_OPEN_IMAGE,
+    MTI_EXPORT_CANVAS,
+    MTI_UNDO,
+    MTI_REDO,
+    MTI_ABOUT_PROGRAM,
+    MTI_COUNT,
+
+} MENU_TRIGGER_ITEM;
+
+static bool* menuTrigger;
 
 void Exit();
 
@@ -300,7 +317,7 @@ int Init()
     if (windowOpenStatus)
     {
         int i = 0;
-        for (i = 0; i < WOS_COUNT; i++)
+        for (i = 0; i < WOS_COUNT; ++i)
         {
             windowOpenStatus[i] = false;
         }
@@ -316,6 +333,24 @@ int Init()
     else
     {
         printf("Could not allocate windowOpenStatus[%i]", WOS_COUNT);
+        SDL_GL_DestroyContext(glCxt);
+        SDL_DestroyWindow(window);
+        SDL_Quit();
+        return -1;
+    }
+
+    menuTrigger = calloc(MTI_COUNT, sizeof(bool));
+    if (menuTrigger)
+    {
+        int i = 0;
+        for (i = 1; i < MTI_COUNT; ++i)
+        {
+            menuTrigger[i] = false;
+        }
+    }
+    else
+    {
+        printf("Could not allocate menuTrigger[%i]", MTI_COUNT);
         SDL_GL_DestroyContext(glCxt);
         SDL_DestroyWindow(window);
         SDL_Quit();
@@ -446,7 +481,7 @@ int Init()
 
     glUseProgram(0);
 
-    canvasMainLayer = CreateLayer(200, 100);
+    canvasMainLayer = Cap_CreateLayer(200, 100);
     unsigned temp1 = canvasMainLayer.width * canvasMainLayer.height;
     unsigned int temp;
     for (temp = 0; temp < temp1; temp++)
@@ -477,10 +512,26 @@ void Run()
     ImGuiWindowFlags dockspaceFlags = ImGuiDockNodeFlags_None;
     ImGuiWindowFlags defaultWindowFlags = 0;
 
-    bool wantToQuit = false;
     float pressure = 0.0f;
     float previous_touch_x = -1.0f;
     float previous_touch_y = -1.0f;
+
+    /*
+    nfdchar_t *outPath = NULL;
+    nfdresult_t result = NFD_OpenDialog( NULL, NULL, &outPath );
+
+    if ( result == NFD_OKAY ) {
+        puts("Success!");
+        puts(outPath);
+        free(outPath);
+    }
+    else if ( result == NFD_CANCEL ) {
+        puts("User pressed cancel.");
+    }
+    else {
+        printf("Error: %s\n", NFD_GetError() );
+    }
+    */
 
     while (running)
     {
@@ -491,7 +542,7 @@ void Run()
             {
                 running = 0;
             }
-            else if (ev.window.type == SDL_EVENT_WINDOW_CLOSE_REQUESTED && ev.window.windowID == SDL_GetWindowID(window) || wantToQuit)
+            else if (ev.window.type == SDL_EVENT_WINDOW_CLOSE_REQUESTED && ev.window.windowID == SDL_GetWindowID(window) || menuTrigger[MTI_EXIT])
             {
                 // check if unsaved
                 //     show modal
@@ -543,11 +594,73 @@ void Run()
             canvasWindowSizeChanged = false;
         }
 
-        if (testExport)
+        if (menuTrigger[MTI_EXPORT_CANVAS])
         {
             printf("EXPORTING!!!!\n");
-            Cap_WriteCanvasToFile("./test.png", canvasMainLayer.data, canvasMainLayer.width, canvasMainLayer.height);
-            testExport = false;
+            nfdchar_t* location = NULL;
+            nfdresult_t r = NFD_SaveDialog("png,jpg;psd", NULL, &location);
+            if (r == NFD_OKAY)
+            {
+                Cap_WriteCanvasToFile(location, canvasMainLayer.data, canvasMainLayer.width, canvasMainLayer.height);
+                puts(location);
+                free(location);
+            }
+            else if (r == NFD_CANCEL)
+            {
+                printf("user cancelled.\n");
+            }
+            else 
+            {
+                printf("Error: %s\n", NFD_GetError());
+            }
+            menuTrigger[MTI_EXPORT_CANVAS] = false;
+        }
+        if (menuTrigger[MTI_OPEN_IMAGE])
+        {
+            printf("IMPORTING!!!!\n");
+            nfdchar_t* location = NULL;
+            nfdresult_t r = NFD_OpenDialog("png,jpg;psd", NULL, &location);
+            if (r == NFD_OKAY)
+            {
+                int w, h, channels;
+                unsigned char* imageData = stbi_load(location, &w, &h, &channels, 4); // Force 4 channels (RGBA)
+                if (!imageData) 
+                {
+                    fprintf(stderr, "Failed to load image: %s\n", location);
+                }
+                CAP_PixelRGBA* result = (CAP_PixelRGBA*)malloc(w * h * sizeof(CAP_PixelRGBA));
+                if (!result) 
+                {
+                    fprintf(stderr, "Failed to allocate memory for pixel array\n");
+                    stbi_image_free(imageData);
+                }
+                for (int i = 0; i < w * h; ++i) 
+                {
+                    result[i].r = imageData[i * 4 + 0] / 255.0f; // Red
+                    result[i].g = imageData[i * 4 + 1] / 255.0f; // Green
+                    result[i].b = imageData[i * 4 + 2] / 255.0f; // Blue
+                    result[i].a = imageData[i * 4 + 3] / 255.0f; // Alpha
+                }
+                // Set the width and height for the caller
+                //*width = (unsigned)w;
+                //*height = (unsigned)h;
+
+                Cap_ReplaceLayer(&canvasMainLayer, w, h);
+                free(canvasMainLayer.data);
+                canvasMainLayer.data = result;
+
+                // Free the raw image data from stb_image
+                stbi_image_free(imageData);
+            }
+            else if (r == NFD_CANCEL)
+            {
+                printf("user cancelled.\n");
+            }
+            else
+            {
+                printf("Error: %s\n", NFD_GetError());
+            }
+            menuTrigger[MTI_OPEN_IMAGE] = false;
         }
 
         glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
@@ -590,9 +703,9 @@ void Run()
                 if (igBeginMenu("File", 1))
                 {
                     igMenuItem_BoolPtr("New", "Ctrl + N", NULL, 1);
-                    igMenuItem_BoolPtr("Open", "Ctrl + O", NULL, 1);
-                    igMenuItem_BoolPtr("Export Image", NULL, &testExport, 1);
-                    igMenuItem_BoolPtr("Exit", NULL, &wantToQuit, 1);
+                    igMenuItem_BoolPtr("Open", "Ctrl + O", &menuTrigger[MTI_OPEN_IMAGE], 1);
+                    igMenuItem_BoolPtr("Export Image", NULL, &menuTrigger[MTI_EXPORT_CANVAS], 1);
+                    igMenuItem_BoolPtr("Exit", NULL, &menuTrigger[MTI_EXIT], 1);
                     igEndMenu();
                 }
                 if (igBeginMenu("Edit", 1))
@@ -632,7 +745,7 @@ void Run()
             }
         }
         igEnd();
-
+        
         if (windowOpenStatus[WOS_TOOLBAR])
         {
             ShowToolbarWindow(&windowOpenStatus[WOS_TOOLBAR]);

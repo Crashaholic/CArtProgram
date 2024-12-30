@@ -22,4 +22,10 @@
 /dep/cglm/.readthedocs.yaml
 /dep/cglm/cglm.podspec
 /dep/cglm/win/cglm-test/x64/Release
+/dep/nfd/docs/
+/dep/nfd/build/premake5.lua
+/dep/nfd/build/dont_run_premake.txt
+/dep/nfd/build/vs2010/.vs/
+/dep/nfd/build/lib/
+/dep/nfd/build/obj/
 *.png

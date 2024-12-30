@@ -3,7 +3,7 @@
 
 #include "cap_pixel.h"
 
-typedef struct
+typedef struct CAP_Layer
 {
     CAP_PixelRGBA* data;
     unsigned width, height;
@@ -11,7 +11,7 @@ typedef struct
     int enabled;
 } CAP_Layer;
 
-typedef enum
+typedef enum CAP_LAYER_BLEND_OPTIONS
 {
     LBOP_NORMAL,
     LBOP_MULTIPLY,
@@ -19,6 +19,7 @@ typedef enum
     LBOP_COUNT
 }LAYER_BLEND_OPTIONS;
 
-CAP_Layer CreateLayer(unsigned int width, unsigned int height);
+CAP_Layer Cap_CreateLayer(unsigned int width, unsigned int height);
+void Cap_ReplaceLayer(CAP_Layer* target, unsigned int newWidth, unsigned int newHeight);
 
 #endif

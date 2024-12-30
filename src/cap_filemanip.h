@@ -3,6 +3,7 @@
 
 #include <stdlib.h>
 #include <stdio.h>
+#include <nfd.h>
 
 typedef struct CAP_PixelRGBA CAP_PixelRGBA;
 
