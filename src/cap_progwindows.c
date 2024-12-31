@@ -5,16 +5,9 @@
 #include <glad/glad.h>
 #include <SDL3/SDL.h>
 
-void ToolbarWindowSizeCallback(ImGuiSizeCallbackData* data)
-{
-
-}
-
 void ShowToolbarWindow(bool* p_open)
 {
     ImGuiSizeCallbackData* data = NULL;
-    igSetNextWindowSize((ImVec2) {50.f, 1080.f}, ImGuiCond_Always);
-    igSetNextWindowSizeConstraints((ImVec2) { -1, 0.0f }, (ImVec2){ -1, FLT_MAX }, NULL, NULL);
     //https://github.com/ocornut/imgui/issues/2648
     if (igBegin("Toolbar##WindowToolbar", p_open, ImGuiWindowFlags_NoTitleBar))
     {
@@ -103,7 +96,7 @@ void ShowHistoryWindow(bool* p_open)
     igEnd();
 }
 
-void ShowCanvasWindow(bool* p_open, bool* canvasWindowSizeChanged, unsigned FBT, ImVec2* lastCanvasSize, Cap_Camera* capcam)
+void ShowCanvasWindow(bool* p_open, bool* canvasWindowSizeChanged, CAP_Layer* layer, unsigned FBT, ImVec2* lastCanvasSize, Cap_Camera* capcam, ImVec2* tempDebug)
 {
     ImGuiIO* io = igGetIO(); // Access ImGui's IO system for mouse position
     igPushStyleVar_Vec2(ImGuiStyleVar_WindowPadding, (ImVec2) { 0.0f, 0.0f });
@@ -133,39 +126,39 @@ void ShowCanvasWindow(bool* p_open, bool* canvasWindowSizeChanged, unsigned FBT,
             {
                 if (io->MouseDown[2])
                 {
+                    ImVec2 panningBoundsMin = { (layer->width * -0.5f - 100.f) * capcam->zoom, (layer->height * -0.5f - 100.f) * capcam->zoom };
+                    ImVec2 panningBoundsMax = { (layer->width * 0.5f + 100.f) * capcam->zoom, (layer->height * 0.5f + 100.f) * capcam->zoom };
                     SDL_SetCursor(DRAG_CURSOR);
                     capcam->pos.x += io->MouseDelta.x;
+                    capcam->pos.x = fminf(fmaxf(panningBoundsMin.x, capcam->pos.x), panningBoundsMax.x);
                     capcam->pos.y -= io->MouseDelta.y;
+                    capcam->pos.y = fminf(fmaxf(panningBoundsMin.y, capcam->pos.y), panningBoundsMax.y);
                 }
                 else
                 {
                     SDL_SetCursor(DFLT_CURSOR);
                 }
 
+                
+
+
+
                 // TODO: RELATIVE ZOOMING
                 if (io->MouseWheel > 0.f && io->MouseWheel > FLT_EPSILON)
                 {
                     if (io->KeyCtrl)
-                    {
                         if (capcam->zoom + 0.5f > 20.0f)
                             capcam->zoom = 20.0f;
                         else
                             capcam->zoom += 0.5f;
-                    }
                 }
                 else if (io->MouseWheel < 0.f && io->MouseWheel < FLT_EPSILON)
                 {
                     if (io->KeyCtrl)
-                    {
                         if ((capcam->zoom - 0.5f) > 0.0f)
-                        {
                             capcam->zoom -= 0.5f;
-                        }
                         else
-                        {
                             capcam->zoom = 0.1f;
-                        }
-                    }
                 }
             }
             else

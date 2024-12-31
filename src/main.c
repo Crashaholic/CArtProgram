@@ -2,7 +2,7 @@
 #include <glad/glad.h>
 
 #include "cap_progwindows.h"
-#include "cap_layer.h"
+//#include "cap_layer.h"
 #include "cap_shader.h"
 #include "cap_math.h"
 #include "cap_logging.h"
@@ -52,6 +52,7 @@ SDL_GLContext glCxt;
 
 ImVec2 lastCanvasSize = { 0, 0 };
 bool canvasWindowSizeChanged = false;
+ImVec2 tempDebug;
 
 unsigned VBO, VAO, EBO;
 unsigned vshader, fshader, sprogram;
@@ -203,15 +204,15 @@ int Init()
     Cap_ShaderSetMat4(sprogram, "proj", proj[0]);
     glUseProgram(0);
 
-    canvasMainLayer = Cap_LayerCreate(1, 1);
+    canvasMainLayer = Cap_LayerCreate(11, 11);
     unsigned temp1 = canvasMainLayer.width * canvasMainLayer.height;
     unsigned int temp;
     for (temp = 0; temp < temp1; temp++)
     {
-        canvasMainLayer.data[temp].r = 1.f;
-        canvasMainLayer.data[temp].g = 1.f;
-        canvasMainLayer.data[temp].b = 1.f;
-        canvasMainLayer.data[temp].a = 1.f;
+        canvasMainLayer.data[temp].r = 1.f * ((temp % 2));
+        canvasMainLayer.data[temp].g = 1.f * ((temp % 2));
+        canvasMainLayer.data[temp].b = 1.f * ((temp % 2));
+        canvasMainLayer.data[temp].a = 1.f * ((temp % 2));
     }
     Cap_LayerRefreshImage(&canvasMainLayer);
 
@@ -255,7 +256,7 @@ void Run()
             glUseProgram(sprogram);
             mat4 proj = GLM_MAT4_IDENTITY_INIT;
             glmc_ortho(-(lastCanvasSize.x / 2.0f), lastCanvasSize.x / 2.0f, -(lastCanvasSize.y / 2.0f), (lastCanvasSize.y / 2.0f), -0.1f, 100.f, proj);
-            glUniformMatrix4fv(glGetUniformLocation(sprogram, "proj"), 1, GL_FALSE, proj[0]);
+            Cap_ShaderSetMat4(sprogram, "proj", proj[0]);
             glUseProgram(0);
             canvasWindowSizeChanged = false;
         }
@@ -452,14 +453,22 @@ void DisplayWindowByStatus()
     {
         ShowCanvasWindow(&windowOpenStatus[WOS_CANVAS]
             , &canvasWindowSizeChanged
+            , &canvasMainLayer
             , FBT
             , &lastCanvasSize
-            , &capcam);
+            , &capcam
+            , &tempDebug);
     }
 
     if (windowOpenStatus[WOS_LAYERS])
     {
         ShowLayersWindow(&windowOpenStatus[WOS_LAYERS]);
+        if (igBegin("Layers##WindowLayers", &windowOpenStatus[WOS_LAYERS], 0))
+        {
+            igText("%f, %f", tempDebug.x, tempDebug.y);
+            igText("%f, %f", capcam.pos.x, capcam.pos.y);
+        }
+        igEnd();
     }
 
     if (windowOpenStatus[WOS_PREVIEW])
@@ -482,14 +491,15 @@ void RenderCanvasContents()
     glUseProgram(sprogram);
     mat4 model = GLM_MAT4_IDENTITY_INIT;
     glmc_scale(model, (vec3) { (float)canvasMainLayer.width, (float)canvasMainLayer.height, 1.0f });
-    glUniformMatrix4fv(glGetUniformLocation(sprogram, "model"), 1, GL_FALSE, model[0]);
+    Cap_ShaderSetMat4(sprogram, "model", model[0]);
     mat4 view = GLM_MAT4_IDENTITY_INIT;
     glmc_translate(view, (vec3) { capcam.pos.x, capcam.pos.y, 0.0f });
     glmc_scale(view, (vec3) { 1.0f * capcam.zoom, 1.0f * capcam.zoom, 1.0f });
-    glUniformMatrix4fv(glGetUniformLocation(sprogram, "view"), 1, GL_FALSE, view[0]);
+    Cap_ShaderSetMat4(sprogram, "view", view[0]);
     glBindTexture(GL_TEXTURE_2D, canvasMainLayer.textureId);
     glBindVertexArray(VAO);
     glDrawArrays(GL_TRIANGLES, 0, 6);
+    glBindTexture(GL_TEXTURE_2D, 0);
     glBindVertexArray(0);
     glUseProgram(0);
     glBindFramebuffer(GL_FRAMEBUFFER, 0);

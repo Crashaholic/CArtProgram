@@ -107,12 +107,6 @@
     <ClInclude Include="cap_math.h" />
     <ClInclude Include="cap_pixel.h" />
   </ItemGroup>
-  <ItemGroup>
-    <Text Include="VERTEX_SHADER.vert" />
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="FRAGMENT_SHADER.frag" />
-  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>

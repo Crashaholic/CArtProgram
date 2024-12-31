@@ -66,10 +66,4 @@
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
-  <ItemGroup>
-    <Text Include="VERTEX_SHADER.vert" />
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="FRAGMENT_SHADER.frag" />
-  </ItemGroup>
 </Project>
