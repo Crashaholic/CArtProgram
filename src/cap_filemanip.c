@@ -191,6 +191,11 @@ void Cap_FileIOImportToLayer(CAP_Layer* layer)
         }
         // Set the width and height for the caller
 
+        result[0].r = 1.0f;
+        result[0].g = 1.0f;
+        result[0].b = 1.0f;
+        result[0].a = 1.0f;
+
         Cap_LayerReplace(layer, w, h);
         free(layer->data);
         layer->data = result;

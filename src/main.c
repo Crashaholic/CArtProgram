@@ -2,8 +2,6 @@
 #include <glad/glad.h>
 
 #include "cap_progwindows.h"
-//#include "cap_layer.h"
-#include "cap_shader.h"
 #include "cap_math.h"
 #include "cap_logging.h"
 //#include <SDL3/SDL_main.h> // will uncomment when i do meet a problematic evildoer
@@ -25,6 +23,7 @@ typedef enum CAP_WINDOW_OPEN_STATUS
     WOS_LAYERS,
     WOS_PREVIEW,
     WOS_HISTORY,
+    WOS_STATUS,
     WOS_COUNT
 } WINDOW_OPEN_STATUS; // shorted to WOS
 
@@ -51,7 +50,6 @@ SDL_Window* window = NULL;
 SDL_GLContext glCxt;
 
 ImVec2 lastCanvasSize = { 0, 0 };
-bool canvasWindowSizeChanged = false;
 ImVec2 tempDebug;
 
 unsigned VBO, VAO, EBO;
@@ -87,6 +85,7 @@ int Init()
         windowOpenStatus[WOS_LAYERS] = true;
         windowOpenStatus[WOS_PREVIEW] = true;
         windowOpenStatus[WOS_HISTORY] = true;
+        windowOpenStatus[WOS_STATUS] = true;
     }
     else
     {
@@ -245,22 +244,6 @@ void Run()
             }
         }
 
-        if (canvasWindowSizeChanged)
-        {
-            glBindTexture(GL_TEXTURE_2D, FBT);
-            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, (int)lastCanvasSize.x, (int)lastCanvasSize.y, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-            glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, FBT, 0);
-
-            glUseProgram(sprogram);
-            mat4 proj = GLM_MAT4_IDENTITY_INIT;
-            glmc_ortho(-(lastCanvasSize.x / 2.0f), lastCanvasSize.x / 2.0f, -(lastCanvasSize.y / 2.0f), (lastCanvasSize.y / 2.0f), -0.1f, 100.f, proj);
-            Cap_ShaderSetMat4(sprogram, "proj", proj[0]);
-            glUseProgram(0);
-            canvasWindowSizeChanged = false;
-        }
-
         if (menuTrigger[MTI_EXPORT_CANVAS])
         {
             Cap_FileIOExportFromLayer(&canvasMainLayer);
@@ -345,6 +328,7 @@ void Run()
                     igMenuItem_BoolPtr("Layers", NULL, &windowOpenStatus[WOS_LAYERS], 1);
                     igMenuItem_BoolPtr("Preview", NULL, &windowOpenStatus[WOS_PREVIEW], 1);
                     igMenuItem_BoolPtr("History", NULL, &windowOpenStatus[WOS_HISTORY], 1);
+                    igMenuItem_BoolPtr("Status", NULL, &windowOpenStatus[WOS_STATUS], 1);
                     igEndMenu();
                 }
                 if (igBeginMenu("Help", 1))
@@ -452,7 +436,7 @@ void DisplayWindowByStatus()
     if (windowOpenStatus[WOS_CANVAS])
     {
         ShowCanvasWindow(&windowOpenStatus[WOS_CANVAS]
-            , &canvasWindowSizeChanged
+            , sprogram
             , &canvasMainLayer
             , FBT
             , &lastCanvasSize
@@ -463,12 +447,6 @@ void DisplayWindowByStatus()
     if (windowOpenStatus[WOS_LAYERS])
     {
         ShowLayersWindow(&windowOpenStatus[WOS_LAYERS]);
-        if (igBegin("Layers##WindowLayers", &windowOpenStatus[WOS_LAYERS], 0))
-        {
-            igText("%f, %f", tempDebug.x, tempDebug.y);
-            igText("%f, %f", capcam.pos.x, capcam.pos.y);
-        }
-        igEnd();
     }
 
     if (windowOpenStatus[WOS_PREVIEW])
@@ -479,6 +457,11 @@ void DisplayWindowByStatus()
     if (windowOpenStatus[WOS_HISTORY])
     {
         ShowHistoryWindow(&windowOpenStatus[WOS_HISTORY]);
+    }
+
+    if (windowOpenStatus[WOS_STATUS])
+    {
+        ShowStatusWindow(&windowOpenStatus[WOS_STATUS]);
     }
 }
 
@@ -492,10 +475,6 @@ void RenderCanvasContents()
     mat4 model = GLM_MAT4_IDENTITY_INIT;
     glmc_scale(model, (vec3) { (float)canvasMainLayer.width, (float)canvasMainLayer.height, 1.0f });
     Cap_ShaderSetMat4(sprogram, "model", model[0]);
-    mat4 view = GLM_MAT4_IDENTITY_INIT;
-    glmc_translate(view, (vec3) { capcam.pos.x, capcam.pos.y, 0.0f });
-    glmc_scale(view, (vec3) { 1.0f * capcam.zoom, 1.0f * capcam.zoom, 1.0f });
-    Cap_ShaderSetMat4(sprogram, "view", view[0]);
     glBindTexture(GL_TEXTURE_2D, canvasMainLayer.textureId);
     glBindVertexArray(VAO);
     glDrawArrays(GL_TRIANGLES, 0, 6);
