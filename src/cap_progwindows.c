@@ -6,8 +6,6 @@
 #include <SDL3/SDL.h>
 #include <cglm/call.h>
 
-ImVec2 tempDebug = { 0.0f, 0.0f };
-ImVec2 tempDebug2 = { 0.0f, 0.0f };
 ImVec2 prevMousePos = { 0.0f, 0.0f };
 ImVec2 cursorCoords = { 0.0f, 0.0f};
 float currentColorPri[4] = {0.0f, 0.0f, 0.0f, 1.0f};
@@ -81,8 +79,6 @@ void ShowLayersWindow(bool* p_open)
 {
     if (igBegin("Layers##WindowLayers", p_open, 0))
     {
-        igText("%f, %f\n", tempDebug.x, tempDebug.y);
-        igText("%f, %f\n", tempDebug2.x, tempDebug2.y);
     }
     igEnd();
 }
@@ -116,28 +112,45 @@ void ShowStatusWindow(bool* p_open)
 
 void ShowCanvasWindow(bool* p_open, unsigned shaderProgramId, CAP_Layer* layer, unsigned FBT, ImVec2* lastCanvasSize, Cap_Camera* capcam, ImVec2* tempDebuga)
 {
-    ImGuiIO* io = igGetIO(); // Access ImGui's IO system for mouse position
+    ImGuiIO* io = igGetIO();
     igPushStyleVar_Vec2(ImGuiStyleVar_WindowPadding, (ImVec2) { 0.0f, 0.0f });
     if (igBegin("Canvas##WindowCanvas", p_open, 0))
     {
+        // this is when imgui STARTS to draw the window's contents
+        // it will be used to get the WHOLE region avail
+        // i.e. the canvas imgui window size
+        //
+        // since imgui just started drawing, its at the top left
+        // corner of the window
         ImVec2 getCursorScreenPos;
         igGetCursorScreenPos(&getCursorScreenPos);
 
         ImVec2 boundsMin = { 0.0f, 0.0f };
         ImVec2 boundsMax = { 0.0f, 0.0f };
 
+        // we then try to get the region available reported by
+        // imgui's own API
         ImVec2 regionAvail; 
         igGetContentRegionAvail(&regionAvail);
 
+        // using the top left + the region avail,
+        // we can get the positions that will be used to draw
+        // the window's contents
         boundsMin.x = getCursorScreenPos.x;
         boundsMin.y = getCursorScreenPos.y;
         boundsMax.x = getCursorScreenPos.x + regionAvail.x;
         boundsMax.y = getCursorScreenPos.y + regionAvail.y;
 
+        // here we get the mouse position
         ImVec2 mp = io->MousePos;
+        // and setup the cursors that will be used
+        // TODO: OPEN AND CLOSED HAND ICON FOR PANNING
         SDL_Cursor* DRAG_CURSOR = SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_MOVE);
         SDL_Cursor* DFLT_CURSOR = SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_DEFAULT);
 
+        // bool for whether the projection matrix should be updated
+        // if not, skip the step to not waste any computational time
+        // which might not be that much of a save but w/e
         bool updateProj = false;
         if (lastCanvasSize->x != regionAvail.x || lastCanvasSize->y != regionAvail.y)
         {
@@ -150,6 +163,11 @@ void ShowCanvasWindow(bool* p_open, unsigned shaderProgramId, CAP_Layer* layer, 
             glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, FBT, 0);
             updateProj = true;
         }
+        // setting the view matrix in the shader program every frame.
+        // im lazy, and i dont want to try to make a
+        // bool check for whether the camera updated
+        // sure it MIGHT help save some time
+        // but is it negligible...
         glUseProgram(shaderProgramId);
         mat4 view = GLM_MAT4_IDENTITY_INIT;
         glmc_translate(view, (vec3) { capcam->pos.x, capcam->pos.y, 0.0f });
@@ -168,7 +186,6 @@ void ShowCanvasWindow(bool* p_open, unsigned shaderProgramId, CAP_Layer* layer, 
         {
             if (mp.y > boundsMin.y && mp.y < boundsMax.y)
             {
-                prevMousePos = mp;
                 if (io->MouseDown[2])
                 {
                     ImVec2 panningBoundsMin = { (layer->width * -0.5f - 100.f) * capcam->zoom, (layer->height * -0.5f - 100.f) * capcam->zoom };
@@ -188,8 +205,8 @@ void ShowCanvasWindow(bool* p_open, unsigned shaderProgramId, CAP_Layer* layer, 
                 float midY = (boundsMax.y - boundsMin.y) / 2.f;
 
                 // Mouse position relative to the window
-                float x = (mp.x - boundsMin.x) - midX;
-                float y = (mp.y - boundsMin.y) - midY;
+                float centerX = (mp.x - boundsMin.x) - midX;
+                float centerY = (mp.y - boundsMin.y) - midY;
 
                 // Calculate the visible region of the image in world space (including panning and zoom)
                 float halfImageX = ((float)layer->width / 2.0f) * capcam->zoom;
@@ -202,8 +219,8 @@ void ShowCanvasWindow(bool* p_open, unsigned shaderProgramId, CAP_Layer* layer, 
                 imageMax.y = halfImageY - capcam->pos.y;
 
                 // Normalize mouse position to the image's world space
-                float normX = (x - imageMin.x) / (imageMax.x - imageMin.x);
-                float normY = (y - imageMin.y) / (imageMax.y - imageMin.y);
+                float normX = (centerX - imageMin.x) / (imageMax.x - imageMin.x);
+                float normY = (centerY - imageMin.y) / (imageMax.y - imageMin.y);
 
                 // Map normalized coordinates to image space
                 float imageSpaceX = normX * layer->width;
@@ -213,50 +230,66 @@ void ShowCanvasWindow(bool* p_open, unsigned shaderProgramId, CAP_Layer* layer, 
                 int pixelX = (int)(imageSpaceX);
                 int pixelY = (int)(imageSpaceY);
 
-                cursorCoords.x = pixelX;
-                cursorCoords.y = pixelY;
+                cursorCoords.x = imageSpaceX;
+                cursorCoords.y = imageSpaceY;
 
                 // Check if the mouse is within the image bounds
                 if (io->MouseDown[0])
                 {
-                    // Check if the pixel coordinates are within bounds
-                    if (pixelX >= 0 && pixelX < layer->width && pixelY >= 0 && pixelY < layer->height)
+                    float step = 0.01f;
+                    //ImVec2 scaledMouseDelta = { mp.x - prevMousePos.x / capcam->zoom, mp.y - prevMousePos.y / capcam->zoom };
+                    for (float s = 0.0f; s < 1.0f; s += step)
                     {
-                        // Paint the pixel (brush size is optional here)
-                        // TODO: EXPOSE THIS SHID
-                        int brushSize = 3; // Example brush size
-                        //for (int dy = -brushSize; dy <= brushSize; dy++)
-                        //{
-                        //    for (int dx = -brushSize; dx <= brushSize; dx++)
-                        //    {
-                        //        int nx = pixelX + dx;
-                        //        int ny = pixelY + dy;
+                        ImVec2 itp = { prevMousePos.x + s * (mp.x - prevMousePos.x), prevMousePos.y + s * (mp.y - prevMousePos.y) };
+                        float centerX1 = (itp.x - boundsMin.x) - midX;
+                        float centerY1 = (itp.y - boundsMin.y) - midY;
+                        // Normalize mouse position to the image's world space
+                        float normX1 = (centerX1 - imageMin.x) / (imageMax.x - imageMin.x);
+                        float normY1 = (centerY1 - imageMin.y) / (imageMax.y - imageMin.y);
 
-                        //        if (nx >= 0 && nx < layer->width && ny >= 0 && ny < layer->height)
-                        //        {
-                        //            CAP_PixelRGBA* pixel = &layer->data[ny * layer->width + nx];
-                        //            pixel->r = 1.0f; // Red
-                        //            pixel->g = 0.0f;
-                        //            pixel->b = 0.0f;
-                        //            pixel->a = 1.0f; // Opaque
-                        //        }
-                        //    }
-                        //}
+                        // Map normalized coordinates to image space
+                        float imageSpaceX1 = normX1 * layer->width;
+                        float imageSpaceY1 = normY1 * layer->height;
 
-                        if (pixelX >= 0 && pixelX < layer->width && pixelY >= 0 && pixelY < layer->height)
+                        // Convert to integer pixel coordinates
+                        int pixelX1 = (int)(imageSpaceX1);
+                        int pixelY1 = (int)(imageSpaceY1);
+
+                        // Check if the pixel coordinates are within bounds
+                        if (pixelX1 >= 0 && pixelX1 < layer->width && pixelY1 >= 0 && pixelY1 < layer->height)
                         {
-                            CAP_PixelRGBA* pixel = &layer->data[pixelY * layer->width + pixelX];
-                            pixel->r = currentColorPri[0]; // Red
+                            // Paint the pixel (brush size is optional here)
+                            // TODO: EXPOSE THIS SHID
+                            int brushSize = 3; // Example brush size
+                            //for (int dy = -brushSize; dy <= brushSize; dy++)
+                            //{
+                            //    for (int dx = -brushSize; dx <= brushSize; dx++)
+                            //    {
+                            //        int nx = pixelX + dx;
+                            //        int ny = pixelY + dy;
+
+                            //        if (nx >= 0 && nx < layer->width && ny >= 0 && ny < layer->height)
+                            //        {
+                            //            CAP_PixelRGBA* pixel = &layer->data[ny * layer->width + nx];
+                            //            pixel->r = 1.0f; // Red
+                            //            pixel->g = 0.0f;
+                            //            pixel->b = 0.0f;
+                            //            pixel->a = 1.0f; // Opaque
+                            //        }
+                            //    }
+                            //}
+                            CAP_PixelRGBA* pixel = &layer->data[pixelY1 * layer->width + pixelX1];
+                            pixel->r = currentColorPri[0];
                             pixel->g = currentColorPri[1];
                             pixel->b = currentColorPri[2];
-                            pixel->a = currentColorPri[3]; // Opaque
+                            pixel->a = currentColorPri[3];
                         }
-
-                        // Refresh the texture
-                        Cap_LayerRefreshImage(layer);
                     }
+                    // Refresh the texture
+                    Cap_LayerRefreshImage(layer);
                 }
-                prevMousePos = mp;
+                prevMousePos.x = mp.x;
+                prevMousePos.y = mp.y;
 
                 // TODO: RELATIVE ZOOMING
                 if (io->MouseWheel > 0.f && io->MouseWheel > FLT_EPSILON)
