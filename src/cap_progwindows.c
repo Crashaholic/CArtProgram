@@ -112,7 +112,7 @@ void ShowColorPickerWindow(bool* p_open)
         }
         igColorPicker4("##ColorPickerLabel", currentEditingColor, ImGuiColorEditFlags_NoInputs | ImGuiColorEditFlags_NoTooltip | ImGuiColorEditFlags_NoLabel | ImGuiColorEditFlags_NoSidePreview, NULL);
 
-
+        //TODO: RGB/HSV SLIDERS HERE
 
         igGetCursorScreenPos(&getCursorScreenPos);
         if (igInvisibleButton("##ColorPrimarySelector", (ImVec2) { regionAvail.x * 0.5f - 5.0f, 20.f }, 0))
@@ -126,7 +126,20 @@ void ShowColorPickerWindow(bool* p_open)
         }
         ImU32 priCol = igColorConvertFloat4ToU32(((ImVec4) { currentColorPri[0], currentColorPri[1], currentColorPri[2], currentColorPri[3] }));
         ImU32 secCol = igColorConvertFloat4ToU32(((ImVec4) { currentColorSec[0], currentColorSec[1], currentColorSec[2], currentColorSec[3] }));
-        //ImDrawList_AddRectFilled(igGetWindowDrawList(), boundsMin, boundsMax, color, 0.0f, 0);
+        if (currentlyEditingSecondary)
+        {
+            ImDrawList_AddRectFilledMultiColor(igGetWindowDrawList()
+                , (ImVec2) { boundsMax.x - regionAvail.x * 0.5f - 2.0f, getCursorScreenPos.y - 2.0f }
+                , (ImVec2) { boundsMax.x - 5.0f + 2.0f, getCursorScreenPos.y + 22.f }
+                , 0xFFFFFF00, 0xFF00FFFF, 0xFF770077, 0xFF007700);
+        }
+        else
+        {
+            ImDrawList_AddRectFilledMultiColor(igGetWindowDrawList()
+                , (ImVec2) { getCursorScreenPos.x + 3.0f, getCursorScreenPos.y - 2.0f }
+                , (ImVec2) { boundsMax.x - regionAvail.x * 0.5f - 3.0f, getCursorScreenPos.y + 22.f }
+                , 0xFFFFFF00, 0xFF00FFFF, 0xFF770077, 0xFF007700);
+        }
         ImDrawList_AddRectFilledMultiColor(igGetWindowDrawList()
             , (ImVec2) { getCursorScreenPos.x + 5.0f, getCursorScreenPos.y }
             , (ImVec2) { boundsMax.x - regionAvail.x * 0.5f - 5.0f, getCursorScreenPos.y + 20.f }
@@ -135,16 +148,6 @@ void ShowColorPickerWindow(bool* p_open)
             , (ImVec2) { boundsMax.x - regionAvail.x * 0.5f, getCursorScreenPos.y }
             , (ImVec2) { boundsMax.x - 5.0f, getCursorScreenPos.y + 20.f }
             , secCol, secCol, secCol, secCol);
-
-        //ImDrawList_AddRectFilledMultiColor();
-        //ImDrawList_AddRectFilled(igGetWindowDrawList(), boundsMin, boundsMax, 0xFFFFFFFF, 0.0f, 0);
-        if (mp.x > boundsMin.x && mp.x < boundsMax.x)
-        {
-            if (mp.y > boundsMin.y && mp.y < boundsMax.y)
-            {
-            }
-        }
-        
     }
     igEnd();
     igPopStyleVar(1);
