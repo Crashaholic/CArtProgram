@@ -10,6 +10,7 @@ ImVec2 prevMousePos = { 0.0f, 0.0f };
 ImVec2 cursorCoords = { 0.0f, 0.0f};
 float currentColorPri[4] = {0.0f, 0.0f, 0.0f, 1.0f};
 float currentColorSec[4] = {1.0f, 1.0f, 1.0f, 1.0f};
+char currentlyEditingSecondary = 0;
 
 void ShowToolbarWindow(bool* p_open)
 {
@@ -68,11 +69,85 @@ void ShowBrushSettingsWindow(bool* p_open)
 
 void ShowColorPickerWindow(bool* p_open)
 {
+    igPushStyleVar_Vec2(ImGuiStyleVar_WindowPadding, (ImVec2) { 0.0f, 0.0f });
     if (igBegin("Color Picker##WindowColorPicker", p_open, 0))
     {
-        igColorPicker4("Main Color", currentColorPri, ImGuiColorEditFlags_NoTooltip | ImGuiColorEditFlags_NoLabel | ImGuiColorEditFlags_NoSidePreview, NULL);
+        // this is when imgui STARTS to draw the window's contents
+        // it will be used to get the WHOLE region avail
+        // i.e. the canvas imgui window size
+        //
+        // since imgui just started drawing, its at the top left
+        // corner of the window
+        ImVec2 getCursorScreenPos;
+        igGetCursorScreenPos(&getCursorScreenPos);
+
+        // we then try to get the region available reported by
+        // imgui's own API
+        ImVec2 regionAvail;
+        igGetContentRegionAvail(&regionAvail);
+
+        ImVec2 boundsMin = { 0.0f, 0.0f };
+        ImVec2 boundsMax = { 0.0f, 0.0f };
+
+        // using the top left + the region avail,
+        // we can get the positions that will be used to draw
+        // the window's contents
+        boundsMin.x = getCursorScreenPos.x;
+        boundsMin.y = getCursorScreenPos.y;
+        boundsMax.x = getCursorScreenPos.x + regionAvail.x;
+        boundsMax.y = getCursorScreenPos.y + regionAvail.y;
+
+        // here we get the mouse position
+        ImVec2 mp; 
+        igGetMousePos(&mp);
+        igSetNextItemWidth(-FLT_MIN);
+        float* currentEditingColor;
+        if (currentlyEditingSecondary)
+        {
+            currentEditingColor = currentColorSec;
+        }
+        else
+        {
+            currentEditingColor = currentColorPri;
+        }
+        igColorPicker4("##ColorPickerLabel", currentEditingColor, ImGuiColorEditFlags_NoInputs | ImGuiColorEditFlags_NoTooltip | ImGuiColorEditFlags_NoLabel | ImGuiColorEditFlags_NoSidePreview, NULL);
+
+
+
+        igGetCursorScreenPos(&getCursorScreenPos);
+        if (igInvisibleButton("##ColorPrimarySelector", (ImVec2) { regionAvail.x * 0.5f - 5.0f, 20.f }, 0))
+        {
+            currentlyEditingSecondary = 0;
+        }
+        igSameLine(0.0f, 5.0f);
+        if (igInvisibleButton("##ColorSecondarySelector", (ImVec2) { regionAvail.x * 0.5f - 5.0f, 20.f }, 0))
+        {
+            currentlyEditingSecondary = 1;
+        }
+        ImU32 priCol = igColorConvertFloat4ToU32(((ImVec4) { currentColorPri[0], currentColorPri[1], currentColorPri[2], currentColorPri[3] }));
+        ImU32 secCol = igColorConvertFloat4ToU32(((ImVec4) { currentColorSec[0], currentColorSec[1], currentColorSec[2], currentColorSec[3] }));
+        //ImDrawList_AddRectFilled(igGetWindowDrawList(), boundsMin, boundsMax, color, 0.0f, 0);
+        ImDrawList_AddRectFilledMultiColor(igGetWindowDrawList()
+            , (ImVec2) { getCursorScreenPos.x + 5.0f, getCursorScreenPos.y }
+            , (ImVec2) { boundsMax.x - regionAvail.x * 0.5f - 5.0f, getCursorScreenPos.y + 20.f }
+            , priCol, priCol, priCol, priCol);
+        ImDrawList_AddRectFilledMultiColor(igGetWindowDrawList()
+            , (ImVec2) { boundsMax.x - regionAvail.x * 0.5f, getCursorScreenPos.y }
+            , (ImVec2) { boundsMax.x - 5.0f, getCursorScreenPos.y + 20.f }
+            , secCol, secCol, secCol, secCol);
+
+        //ImDrawList_AddRectFilledMultiColor();
+        //ImDrawList_AddRectFilled(igGetWindowDrawList(), boundsMin, boundsMax, 0xFFFFFFFF, 0.0f, 0);
+        if (mp.x > boundsMin.x && mp.x < boundsMax.x)
+        {
+            if (mp.y > boundsMin.y && mp.y < boundsMax.y)
+            {
+            }
+        }
+        
     }
     igEnd();
+    igPopStyleVar(1);
 }
 
 void ShowLayersWindow(bool* p_open)
@@ -125,13 +200,13 @@ void ShowCanvasWindow(bool* p_open, unsigned shaderProgramId, CAP_Layer* layer, 
         ImVec2 getCursorScreenPos;
         igGetCursorScreenPos(&getCursorScreenPos);
 
-        ImVec2 boundsMin = { 0.0f, 0.0f };
-        ImVec2 boundsMax = { 0.0f, 0.0f };
-
         // we then try to get the region available reported by
         // imgui's own API
-        ImVec2 regionAvail; 
+        ImVec2 regionAvail;
         igGetContentRegionAvail(&regionAvail);
+
+        ImVec2 boundsMin = { 0.0f, 0.0f };
+        ImVec2 boundsMax = { 0.0f, 0.0f };
 
         // using the top left + the region avail,
         // we can get the positions that will be used to draw
@@ -319,7 +394,6 @@ void ShowCanvasWindow(bool* p_open, unsigned shaderProgramId, CAP_Layer* layer, 
             SDL_SetCursor(DFLT_CURSOR);
         }
 
-        //ImDrawList_AddRectFilled(igGetWindowDrawList(), boundsMin, boundsMax, 0xFFFFFFFF, 0.0f, 0);
         ImDrawList_AddImage(igGetWindowDrawList(), FBT, boundsMin, boundsMax, (ImVec2) { 0, 1 }, (ImVec2) { 1, 0 }, 0xFFFFFFFF);
     }
     igEnd();
