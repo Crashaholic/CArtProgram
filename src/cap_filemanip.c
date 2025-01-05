@@ -56,12 +56,14 @@ char* Cap_FileIOGetContent(const char* location, const char* mode)
 void Cap_FileIOWriteCanvas(const char* location, CAP_PixelRGBA* data, unsigned width, unsigned height) 
 {
     unsigned char* imageData = (unsigned char*)malloc(width * height * 4);
-    if (!imageData) {
+    if (!imageData) 
+    {
         fprintf(stderr, "Memory allocation failed!\n");
         return;
     }
 
-    for (unsigned i = 0; i < width * height; ++i) {
+    for (unsigned i = 0; i < width * height; ++i)
+    {
         imageData[i * 4 + 0] = (unsigned char)(fminf(fmaxf(data[i].r, 0.0f), 1.0f) * 255.0f);
         imageData[i * 4 + 1] = (unsigned char)(fminf(fmaxf(data[i].g, 0.0f), 1.0f) * 255.0f);
         imageData[i * 4 + 2] = (unsigned char)(fminf(fmaxf(data[i].b, 0.0f), 1.0f) * 255.0f);
@@ -184,17 +186,12 @@ void Cap_FileIOImportToLayer(CAP_Layer* layer)
         }
         for (int i = 0; i < w * h; ++i)
         {
-            result[i].r = imageData[i * 4 + 0] / 255.0f; // Red
-            result[i].g = imageData[i * 4 + 1] / 255.0f; // Green
-            result[i].b = imageData[i * 4 + 2] / 255.0f; // Blue
-            result[i].a = imageData[i * 4 + 3] / 255.0f; // Alpha
+            result[i].r = (float)(imageData[i * 4 + 0]) / 255.0f; // Red
+            result[i].g = (float)(imageData[i * 4 + 1]) / 255.0f; // Green
+            result[i].b = (float)(imageData[i * 4 + 2]) / 255.0f; // Blue
+            result[i].a = (float)(imageData[i * 4 + 3]) / 255.0f; // Alpha
         }
         // Set the width and height for the caller
-
-        result[0].r = 1.0f;
-        result[0].g = 1.0f;
-        result[0].b = 1.0f;
-        result[0].a = 1.0f;
 
         Cap_LayerReplace(layer, w, h);
         free(layer->data);

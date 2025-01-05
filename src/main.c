@@ -13,11 +13,11 @@
 #define INITIAL_WINDOW_WIDTH 1280
 #define INITIAL_WINDOW_HEIGHT 720
 
-// http://developer.download.nvidia.com/devzone/devcenter/gamegraphics/files/OptimusRenderingPolicies.pdf
-__declspec(dllexport) uint32_t NvOptimusEnablement = 1;
-
-// https://gpuopen.com/amdpowerxpressrequesthighperformance/
-__declspec(dllexport) uint32_t AmdPowerXpressRequestHighPerformance = 1;
+//// http://developer.download.nvidia.com/devzone/devcenter/gamegraphics/files/OptimusRenderingPolicies.pdf
+//__declspec(dllexport) uint32_t NvOptimusEnablement = 1;
+//
+//// https://gpuopen.com/amdpowerxpressrequesthighperformance/
+//__declspec(dllexport) uint32_t AmdPowerXpressRequestHighPerformance = 1;
 
 
 typedef enum CAP_WINDOW_OPEN_STATUS
@@ -132,6 +132,11 @@ int Init()
         return -1;
     }
 
+    // Set OpenGL version and profile
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 4);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 6);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
+
     glCxt = SDL_GL_CreateContext(window);
     if (!glCxt)
     {
@@ -140,11 +145,6 @@ int Init()
         SDL_Quit();
         return -1;
     }
-
-    // Set OpenGL version and profile
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 4);
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 6);
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
 
     // Load OpenGL functions using GLAD
     if (!gladLoadGLLoader((GLADloadproc)SDL_GL_GetProcAddress))
@@ -476,6 +476,7 @@ void DisplayWindowByStatus()
 void RenderCanvasContents()
 {
     glViewport(0, 0, (int)lastCanvasSize.x, (int)lastCanvasSize.y);
+    glEnable(GL_BLEND);
     glBindFramebuffer(GL_FRAMEBUFFER, FBO);
     glClearColor(0.11f, 0.123f, 0.13f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT);
@@ -489,6 +490,7 @@ void RenderCanvasContents()
     glBindTexture(GL_TEXTURE_2D, 0);
     glBindVertexArray(0);
     glUseProgram(0);
+    glDisable(GL_BLEND);
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
