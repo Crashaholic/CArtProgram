@@ -57,14 +57,14 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;CIMGUI_USE_OPENGL3;CIMGUI_USE_SDL3;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(SolutionDir)dep/SDL3/include/;$(SolutionDir)dep/cimgui/;$(SolutionDir)dep/glad/include/;$(SolutionDir)dep/cglm/include/;$(SolutionDir)dep/stb/include/;$(SolutionDir)dep/nfd/src/include/</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)dep/SDL3/include/;$(SolutionDir)dep/cimgui/;$(SolutionDir)dep/glad/include/;$(SolutionDir)dep/cglm/include/;$(SolutionDir)dep/stb/include/;$(SolutionDir)dep/nfd/src/include/;$(SolutionDir)dep/RealTimeStylusCWrapper/</AdditionalIncludeDirectories>
       <AdditionalOptions>/arch:AVX %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>$(SolutionDir)dep/SDL3/lib/x64;$(SolutionDir)bin/$(Configuration)-$(Platform)-windows/glad;$(SolutionDir)bin/$(Configuration)-$(Platform)-windows/cimgui;$(SolutionDir)bin/$(Configuration)-$(Platform)-windows/cglm;$(SolutionDir)bin/$(Configuration)-$(Platform)-windows/nfd;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>GLAD.lib;cglm.lib;cimgui.lib;SDL3.lib;nfd.lib;$(CoreLibraryDependencies);%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(SolutionDir)dep/SDL3/lib/x64;$(SolutionDir)bin/$(Configuration)-$(Platform)-windows/glad;$(SolutionDir)bin/$(Configuration)-$(Platform)-windows/cimgui;$(SolutionDir)bin/$(Configuration)-$(Platform)-windows/cglm;$(SolutionDir)bin/$(Configuration)-$(Platform)-windows/nfd;$(SolutionDir)bin/$(Configuration)-$(Platform)-windows/rtsc;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>rtsc.lib;GLAD.lib;cglm.lib;cimgui.lib;SDL3.lib;nfd.lib;$(CoreLibraryDependencies);%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">

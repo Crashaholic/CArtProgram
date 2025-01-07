@@ -71,8 +71,9 @@
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <OutDir>$(SolutionDir)bin/$(Configuration)-$(Platform)-windows/$(ProjectName)/</OutDir>
-    <IntDir>$(SolutionDir)int/$(Configuration)-$(Platform)-windows/$(ProjectName)/</IntDir>
+    <OutDir>$(SolutionDir)bin/$(Configuration)-$(Platform)-windows/rtsc/</OutDir>
+    <IntDir>$(SolutionDir)int/$(Configuration)-$(Platform)-windows/rtsc/</IntDir>
+    <TargetName>rtsc</TargetName>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <OutDir>$(SolutionDir)bin/$(Configuration)-$(Platform)-windows/$(ProjectName)/</OutDir>
@@ -136,10 +137,12 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="RTPen.cpp" />
+    <ClCompile Include="rtsc.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="CRTPen.h" />
-    <ClInclude Include="RTPen.h" />
+    <ClInclude Include="RTPen.hpp" />
+    <ClInclude Include="rtsc.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

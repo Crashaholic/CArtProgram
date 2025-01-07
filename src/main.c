@@ -4,6 +4,8 @@
 #include "cap_progwindows.h"
 #include "cap_math.h"
 #include "cap_logging.h"
+
+#include <rtsc.h>
 //#include <SDL3/SDL_main.h> // will uncomment when i do meet a problematic evildoer
 
 // resources:
@@ -222,6 +224,8 @@ int Init()
         canvasMainLayer.data[temp].a = 1.f * ((temp % 2));
     }
     Cap_LayerRefreshImage(&canvasMainLayer);
+
+    TestingFn();
 
     return 0;
 }
