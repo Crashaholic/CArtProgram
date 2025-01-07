@@ -63,7 +63,7 @@
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>$(SolutionDir)dep/SDL3/lib/x64;$(SolutionDir)bin/$(Configuration)-$(Platform)-windows/GLAD;$(SolutionDir)dep/cimgui/build/Release/;$(SolutionDir)dep/cglm/win/x64/Release/;$(SolutionDir)dep/nfd/build/lib/Release/x64;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>$(SolutionDir)dep/SDL3/lib/x64;$(SolutionDir)bin/$(Configuration)-$(Platform)-windows/glad;$(SolutionDir)bin/$(Configuration)-$(Platform)-windows/cimgui;$(SolutionDir)bin/$(Configuration)-$(Platform)-windows/cglm;$(SolutionDir)bin/$(Configuration)-$(Platform)-windows/nfd;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalDependencies>GLAD.lib;cglm.lib;cimgui.lib;SDL3.lib;nfd.lib;$(CoreLibraryDependencies);%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
@@ -83,7 +83,7 @@
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>$(SolutionDir)dep/SDL3/lib/x64;$(SolutionDir)bin/$(Configuration)-$(Platform)-windows/GLAD;$(SolutionDir)dep/cimgui/build/Release/;$(SolutionDir)dep/cglm/win/x64/Release/;$(SolutionDir)dep/nfd/build/lib/Release/x64;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>$(SolutionDir)dep/SDL3/lib/x64;$(SolutionDir)bin/$(Configuration)-$(Platform)-windows/glad;$(SolutionDir)bin/$(Configuration)-$(Platform)-windows/cimgui;$(SolutionDir)bin/$(Configuration)-$(Platform)-windows/cglm;$(SolutionDir)bin/$(Configuration)-$(Platform)-windows/nfd;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalDependencies>GLAD.lib;cglm.lib;cimgui.lib;SDL3.lib;nfd.lib;$(CoreLibraryDependencies);%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
