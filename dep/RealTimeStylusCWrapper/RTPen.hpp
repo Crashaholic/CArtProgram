@@ -1,143 +1,137 @@
-#ifndef WINDOWS_RTPEN_ACCESSOR_H
-#define WINDOWS_RTPEN_ACCESSOR_H
+#ifndef RTPEN_H
+#define RTPEN_H
+
+#ifdef RTSC_EXPORTS
+    #define RTS_API __declspec(dllexport)  // Export for DLL creation
+#else
+    #define RTS_API __declspec(dllimport)  // Import for using the DLL
+#endif
+
 
 #ifdef _WIN32
 
-#include <RTSCOM.h>  // Include RealTimeStylus headers
-#include <iostream>
+    #include <Windows.h>
+    #include <iostream>
+    #include <RTSCOM.h>  // Include RealTimeStylus headers
+    #include <rtscom_i.c>
+    #include <ole2.h>
 
-typedef struct StylusPacket {
-    LONG x;
-    LONG y;
-} StylusPacket;
+    class RTS_API RTPen : public IStylusSyncPlugin {
+    public:
+        RTPen() : refCount(1), punkFTMarshaller(NULL) {}
 
-typedef void (*StylusCallback)(StylusPacket* packets, size_t count);
+        static RTPen* Create(IRealTimeStylus* rtsp);
 
-//extern "C"
-//{
-//    // Initialize RTS
-//    void* RTS_Init(HWND hwnd, StylusCallback callback);
-//
-//    // Shutdown RTS
-//    void RTS_Shutdown(void* rtsHandle);
-//
-//}
+        // IUnknown methods
+        HRESULT STDMETHODCALLTYPE QueryInterface(REFIID riid, void** ppvObject) override;
 
-class RTPen : public IStylusSyncPlugin {
-public:
-    RTPen() : refCount(1) {}
+        ULONG STDMETHODCALLTYPE AddRef() override;
 
-    // IUnknown methods
-    HRESULT STDMETHODCALLTYPE QueryInterface(REFIID riid, void** ppvObject) override;
+        ULONG STDMETHODCALLTYPE Release() override;
 
-    ULONG STDMETHODCALLTYPE AddRef() override;
+        // IStylusPlugin methods
+        HRESULT STDMETHODCALLTYPE RealTimeStylusEnabled(
+            IRealTimeStylus* piRtsSrc, 
+            ULONG cTcidCount, 
+            const TABLET_CONTEXT_ID* pTcids) override;
 
-    ULONG STDMETHODCALLTYPE Release() override;
+        HRESULT STDMETHODCALLTYPE RealTimeStylusDisabled(
+            IRealTimeStylus* piRtsSrc, 
+            ULONG cTcidCount, 
+            const TABLET_CONTEXT_ID* pTcids) override;
 
-    void TestingFn();
+        HRESULT STDMETHODCALLTYPE StylusInRange(
+            IRealTimeStylus* piRtsSrc,
+            TABLET_CONTEXT_ID tcid,
+            STYLUS_ID sid) override;
 
-    // IStylusPlugin methods
-    HRESULT STDMETHODCALLTYPE RealTimeStylusEnabled(
-        IRealTimeStylus* piRtsSrc, 
-        ULONG cTcidCount, 
-        const TABLET_CONTEXT_ID* pTcids) override;
+        HRESULT STDMETHODCALLTYPE StylusOutOfRange(
+            IRealTimeStylus* piRtsSrc,
+            TABLET_CONTEXT_ID tcid,
+            STYLUS_ID sid) override;
 
-    HRESULT STDMETHODCALLTYPE RealTimeStylusDisabled(
-        IRealTimeStylus* piRtsSrc, 
-        ULONG cTcidCount, 
-        const TABLET_CONTEXT_ID* pTcids) override;
+        HRESULT STDMETHODCALLTYPE StylusDown(
+            IRealTimeStylus* piRtsSrc,
+            const StylusInfo* pStylusInfo,
+            ULONG cPropCountPerPkt,
+            LONG* pPacket,
+            LONG** ppInOutPkt) override;
 
-    HRESULT STDMETHODCALLTYPE StylusInRange(
-        IRealTimeStylus* piRtsSrc,
-        TABLET_CONTEXT_ID tcid,
-        STYLUS_ID sid) override;
+        HRESULT STDMETHODCALLTYPE StylusUp(
+            IRealTimeStylus* piRtsSrc,
+            const StylusInfo* pStylusInfo,
+            ULONG cPropCountPerPkt,
+            LONG* pPacket,
+            LONG** ppInOutPkt) override;
 
-    HRESULT STDMETHODCALLTYPE StylusOutOfRange(
-        IRealTimeStylus* piRtsSrc,
-        TABLET_CONTEXT_ID tcid,
-        STYLUS_ID sid) override;
+        HRESULT STDMETHODCALLTYPE StylusButtonDown(
+            IRealTimeStylus* piRtsSrc,
+            STYLUS_ID sid,
+            const GUID* pGuidStylusButton,
+            POINT* pStylusPos) override;
 
-    HRESULT STDMETHODCALLTYPE StylusDown(
-        IRealTimeStylus* piRtsSrc,
-        const StylusInfo* pStylusInfo,
-        ULONG cPropCountPerPkt,
-        LONG* pPacket,
-        LONG** ppInOutPkt) override;
+        HRESULT STDMETHODCALLTYPE StylusButtonUp(
+            IRealTimeStylus* piRtsSrc,
+            STYLUS_ID sid,
+            const GUID* pGuidStylusButton,
+            POINT* pStylusPos) override;
 
-    HRESULT STDMETHODCALLTYPE StylusUp(
-        IRealTimeStylus* piRtsSrc,
-        const StylusInfo* pStylusInfo,
-        ULONG cPropCountPerPkt,
-        LONG* pPacket,
-        LONG** ppInOutPkt) override;
+        HRESULT STDMETHODCALLTYPE InAirPackets(
+            IRealTimeStylus* piRtsSrc,
+            const StylusInfo* pStylusInfo,
+            ULONG cPktCount,
+            ULONG cPktBuffLength,
+            LONG* pPackets,
+            ULONG* pcInOutPkts,
+            LONG** ppInOutPkts) override;
 
-    HRESULT STDMETHODCALLTYPE StylusButtonDown(
-        IRealTimeStylus* piRtsSrc,
-        STYLUS_ID sid,
-        const GUID* pGuidStylusButton,
-        POINT* pStylusPos) override;
+        HRESULT STDMETHODCALLTYPE Packets(
+            IRealTimeStylus* piRtsSrc,
+            const StylusInfo* pStylusInfo,
+            ULONG cPktCount,
+            ULONG cPktBuffLength,
+            LONG* pPackets,
+            ULONG* pcInOutPkts,
+            LONG** ppInOutPkts) override;
 
-    HRESULT STDMETHODCALLTYPE StylusButtonUp(
-        IRealTimeStylus* piRtsSrc,
-        STYLUS_ID sid,
-        const GUID* pGuidStylusButton,
-        POINT* pStylusPos) override;
+        HRESULT STDMETHODCALLTYPE CustomStylusDataAdded(
+            IRealTimeStylus* piRtsSrc,
+            const GUID* pGuidId,
+            ULONG cbData,
+            const BYTE* pbData) override;
 
-    HRESULT STDMETHODCALLTYPE InAirPackets(
-        IRealTimeStylus* piRtsSrc,
-        const StylusInfo* pStylusInfo,
-        ULONG cPktCount,
-        ULONG cPktBuffLength,
-        LONG* pPackets,
-        ULONG* pcInOutPkts,
-        LONG** ppInOutPkts) override;
+        HRESULT STDMETHODCALLTYPE SystemEvent(
+            IRealTimeStylus* piRtsSrc,
+            TABLET_CONTEXT_ID tcid,
+            STYLUS_ID sid,
+            SYSTEM_EVENT event,
+            SYSTEM_EVENT_DATA eventdata) override;
 
-    HRESULT STDMETHODCALLTYPE Packets(
-        IRealTimeStylus* piRtsSrc,
-        const StylusInfo* pStylusInfo,
-        ULONG cPktCount,
-        ULONG cPktBuffLength,
-        LONG* pPackets,
-        ULONG* pcInOutPkts,
-        LONG** ppInOutPkts) override;
+        HRESULT STDMETHODCALLTYPE TabletAdded(
+            IRealTimeStylus* piRtsSrc,
+            IInkTablet* piTablet) override;
 
-    HRESULT STDMETHODCALLTYPE CustomStylusDataAdded(
-        IRealTimeStylus* piRtsSrc,
-        const GUID* pGuidId,
-        ULONG cbData,
-        const BYTE* pbData) override;
+        HRESULT STDMETHODCALLTYPE TabletRemoved(
+            IRealTimeStylus* piRtsSrc,
+            LONG iTabletIndex) override;
 
-    HRESULT STDMETHODCALLTYPE SystemEvent(
-        IRealTimeStylus* piRtsSrc,
-        TABLET_CONTEXT_ID tcid,
-        STYLUS_ID sid,
-        SYSTEM_EVENT event,
-        SYSTEM_EVENT_DATA eventdata) override;
+        HRESULT STDMETHODCALLTYPE Error(
+            IRealTimeStylus* piRtsSrc,
+            IStylusPlugin* piPlugin,
+            RealTimeStylusDataInterest dataInterest,
+            HRESULT hrErrorCode,
+            LONG_PTR* lptrKey) override;
 
-    HRESULT STDMETHODCALLTYPE TabletAdded(
-        IRealTimeStylus* piRtsSrc,
-        IInkTablet* piTablet) override;
+        HRESULT STDMETHODCALLTYPE UpdateMapping(
+            IRealTimeStylus* piRtsSrc) override;
 
-    HRESULT STDMETHODCALLTYPE TabletRemoved(
-        IRealTimeStylus* piRtsSrc,
-        LONG iTabletIndex) override;
+        HRESULT STDMETHODCALLTYPE DataInterest(
+            RealTimeStylusDataInterest* pDataInterest) override;
 
-    HRESULT STDMETHODCALLTYPE Error(
-        IRealTimeStylus* piRtsSrc,
-        IStylusPlugin* piPlugin,
-        RealTimeStylusDataInterest dataInterest,
-        HRESULT hrErrorCode,
-        LONG_PTR* lptrKey) override;
-
-    HRESULT STDMETHODCALLTYPE UpdateMapping(
-        IRealTimeStylus* piRtsSrc) override;
-
-    HRESULT STDMETHODCALLTYPE DataInterest(
-        RealTimeStylusDataInterest* pDataInterest) override;
-
-private:
-    ULONG refCount;
-};
+    private:
+        ULONG refCount;
+        IUnknown* punkFTMarshaller;
+    };
 
 #endif
 

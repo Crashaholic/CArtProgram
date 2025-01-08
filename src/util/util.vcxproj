@@ -21,8 +21,8 @@
   <PropertyGroup Label="Globals">
     <VCProjectVersion>17.0</VCProjectVersion>
     <Keyword>Win32Proj</Keyword>
-    <ProjectGuid>{330176f2-1107-4d1f-82fb-5e31ee8569ef}</ProjectGuid>
-    <RootNamespace>RealTimeStylusCWrapper</RootNamespace>
+    <ProjectGuid>{7ac71e59-581c-4b3f-a4f0-4c6d5b7dab65}</ProjectGuid>
+    <RootNamespace>util</RootNamespace>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
@@ -40,19 +40,17 @@
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
-    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <ConfigurationType>Utility</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
     <PlatformToolset>v143</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
-    <PreferredToolArchitecture>x64</PreferredToolArchitecture>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
-    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <ConfigurationType>Utility</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
     <PlatformToolset>v143</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>Unicode</CharacterSet>
-    <PreferredToolArchitecture>x64</PreferredToolArchitecture>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
   <ImportGroup Label="ExtensionSettings">
@@ -73,14 +71,14 @@
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <OutDir>$(SolutionDir)bin/$(Configuration)-$(Platform)-windows/rtsc/</OutDir>
-    <IntDir>$(SolutionDir)int/$(Configuration)-$(Platform)-windows/rtsc/</IntDir>
-    <TargetName>rtsc</TargetName>
+    <OutDir>$(SolutionDir)bin/$(Configuration)-$(Platform)-windows/CArtProgram\</OutDir>
+    <IntDir>./.del\</IntDir>
+    <TargetName />
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <OutDir>$(SolutionDir)bin/$(Configuration)-$(Platform)-windows/rtsc/</OutDir>
-    <IntDir>$(SolutionDir)int/$(Configuration)-$(Platform)-windows/rtsc/</IntDir>
-    <TargetName>rtsc</TargetName>
+    <OutDir>$(SolutionDir)bin/$(Configuration)-$(Platform)-windows/CArtProgram\</OutDir>
+    <IntDir>./.del\</IntDir>
+    <TargetName />
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -114,7 +112,7 @@
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>RTSC_EXPORTS;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
     </ClCompile>
     <Link>
@@ -122,7 +120,8 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
     <PostBuildEvent>
-      <Command>xcopy /Y "$(TargetPath)" "$(SolutionDir)bin/$(Configuration)-$(Platform)-windows/CArtProgram\"</Command>
+      <Command>xcopy /Y /f "$(SolutionDir)dep/SDL3/lib/x64/SDL3.dll" "$(OutputPath)" 
+xcopy /Y /f "$(SolutionDir)src/res/" "$(OutputPath)/res\" </Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -131,7 +130,7 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>RTSC_EXPORTS;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
     </ClCompile>
     <Link>
@@ -141,16 +140,11 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
     <PostBuildEvent>
-      <Command>xcopy /Y "$(TargetPath)" "$(SolutionDir)bin/$(Configuration)-$(Platform)-windows/CArtProgram\"</Command>
+      <Command>xcopy /Y /f "$(SolutionDir)dep/SDL3/lib/x64/SDL3.dll" "$(OutputPath)" 
+xcopy /Y /f "$(SolutionDir)src/res/" "$(OutputPath)/res\" </Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="RTPen.cpp" />
-    <ClCompile Include="rtsc.cpp" />
-  </ItemGroup>
-  <ItemGroup>
-    <ClInclude Include="RTPen.hpp" />
-    <ClInclude Include="rtsc.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

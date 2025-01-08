@@ -29,3 +29,4 @@
 /dep/nfd/build/lib/
 /dep/nfd/build/obj/
 *.png
+/src/util/.del

@@ -1,19 +1,53 @@
 #include "RTPen.hpp"
-const IID IID_IStylusPlugin = { 0xA81436D8, 0x4757, 0x4fd1, {0xA1, 0x85, 0x13, 0x3F, 0x97, 0xC6, 0xC5, 0x45} };
 
-void RTPen::TestingFn()
+RTPen* RTPen::Create(IRealTimeStylus* rtsp)
 {
-    printf("RRRAAAAAHHHH :eagle:\n");
+    if (!rtsp)
+    {
+        return NULL;
+    }
+
+    RTPen* pRTPen = new RTPen();
+    if (!pRTPen)
+    {
+        return NULL;
+    }
+
+    HRESULT hr = CoCreateFreeThreadedMarshaler(pRTPen, &pRTPen->punkFTMarshaller);
+    if (FAILED(hr))
+    {
+        std::cout << "CSyncEventHandlerRTS::Create: cannot create free-threaded marshaller\n";
+        pRTPen->Release();
+        return NULL;
+    }
+
+    hr = rtsp->AddStylusSyncPlugin(
+        0,                      // insert plugin at position 0 in the sync plugin list
+        pRTPen);  // plugin to be inserted - event handler CSyncEventHandlerRTS
+    if (FAILED(hr))
+    {
+        std::cout << "CEventHandlerRTS::Create: failed to add CSyncEventHandlerRTS to the RealTimeStylus plugins\n";
+        pRTPen->Release();
+        return NULL;
+    }
+
+    return pRTPen;
 }
 
-HRESULT STDMETHODCALLTYPE RTPen::QueryInterface(REFIID riid, void** ppvObject)
+HRESULT RTPen::QueryInterface(REFIID riid, void** ppvObject)
 {
-    if (riid == IID_IUnknown || riid == IID_IStylusPlugin) {
-        *ppvObject = static_cast<IStylusPlugin*>(this);
+    if ((riid == IID_IStylusSyncPlugin) || (riid == IID_IUnknown))
+    {
+        *ppvObject = this;
         AddRef();
         return S_OK;
     }
-    *ppvObject = nullptr;
+    else if (riid == IID_IMarshal)
+    {
+        return punkFTMarshaller->QueryInterface(riid, ppvObject);
+    }
+
+    *ppvObject = NULL;
     return E_NOINTERFACE;
 }
 
@@ -121,7 +155,8 @@ HRESULT STDMETHODCALLTYPE RTPen::TabletRemoved(IRealTimeStylus* piRtsSrc, LONG i
     return S_OK;
 }
 
-HRESULT STDMETHODCALLTYPE RTPen::Error(IRealTimeStylus* piRtsSrc, IStylusPlugin* piPlugin, RealTimeStylusDataInterest dataInterest, HRESULT hrErrorCode, LONG_PTR* lptrKey) {
+HRESULT STDMETHODCALLTYPE RTPen::Error(IRealTimeStylus* piRtsSrc, IStylusPlugin* piPlugin, RealTimeStylusDataInterest dataInterest, HRESULT hrErrorCode, LONG_PTR* lptrKey) 
+{
     std::cout << "Error encountered.\n";
     return S_OK;
 }
@@ -132,7 +167,8 @@ HRESULT STDMETHODCALLTYPE RTPen::UpdateMapping(IRealTimeStylus* piRtsSrc)
     return S_OK;
 }
 
-HRESULT STDMETHODCALLTYPE RTPen::DataInterest(RealTimeStylusDataInterest* pDataInterest) {
+HRESULT STDMETHODCALLTYPE RTPen::DataInterest(RealTimeStylusDataInterest* pDataInterest) 
+{
     //*pDataInterest = RealTimeStylusDataInterest_AllData;  // Adjust as needed
     return S_OK;
 }

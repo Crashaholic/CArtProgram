@@ -42,6 +42,9 @@
     <ClCompile Include="cap_progwindows.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="cap_peninput.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="cap_pixel.h">
@@ -63,6 +66,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="cap_progwindows.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="cap_peninput.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

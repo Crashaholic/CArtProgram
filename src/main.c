@@ -4,8 +4,7 @@
 #include "cap_progwindows.h"
 #include "cap_math.h"
 #include "cap_logging.h"
-
-#include <rtsc.h>
+#include "cap_peninput.h"
 //#include <SDL3/SDL_main.h> // will uncomment when i do meet a problematic evildoer
 
 // resources:
@@ -190,6 +189,17 @@ int Init()
     ImGui_ImplSDL3_InitForOpenGL(window, &glCxt);
     ImGui_ImplOpenGL3_Init(glsl_version);
 
+#ifdef _WIN32
+    {
+        HWND hwnd = (HWND)SDL_GetPointerProperty(SDL_GetWindowProperties(window), SDL_PROP_WINDOW_WIN32_HWND_POINTER, NULL);
+        if (Cap_PenInit_Win(hwnd))
+        {
+            Exit();
+            return -1;
+        }
+    }
+#endif
+
     if (Cap_ShaderSetup("res/VERTEX_SHADER.vert", "res/FRAGMENT_SHADER.frag", &vshader, &fshader, &sprogram))
     {
         Exit();
@@ -224,8 +234,6 @@ int Init()
         canvasMainLayer.data[temp].a = 1.f * ((temp % 2));
     }
     Cap_LayerRefreshImage(&canvasMainLayer);
-
-    TestingFn();
 
     return 0;
 }
@@ -514,6 +522,8 @@ void Exit()
     ImGui_ImplOpenGL3_Shutdown();
     ImGui_ImplSDL3_Shutdown();
     igDestroyContext(NULL);
+
+    Cap_PenShutdown();
 
     SDL_GL_DestroyContext(glCxt);
     if (window != NULL)
