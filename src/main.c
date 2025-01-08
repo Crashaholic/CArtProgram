@@ -310,12 +310,15 @@ void Run()
                 {
                     igMenuItem_BoolPtr("New", "Ctrl + N", NULL, 1);
                     igMenuItem_BoolPtr("Open", "Ctrl + O", &menuTrigger[MTI_OPEN_IMAGE], 1);
+                    igSeparator();
                     igMenuItem_BoolPtr("Export Image", NULL, &menuTrigger[MTI_EXPORT_CANVAS], 1);
+                    igSeparator();
                     igMenuItem_BoolPtr("Exit", NULL, &menuTrigger[MTI_EXIT], 1);
                     igEndMenu();
                 }
                 if (igBeginMenu("Edit", 1))
                 {
+                    igSeparator();
                     igMenuItem_BoolPtr("Undo", "Ctrl + Z", NULL, 1);
                     igMenuItem_BoolPtr("Redo", "Ctrl + Y", NULL, 1);
                     igEndMenu();
@@ -345,6 +348,7 @@ void Run()
                 }
                 if (igBeginMenu("Help", 1))
                 {
+                    igSeparator();
                     igMenuItem_BoolPtr("About...", NULL, &windowOpenStatus[WOS_TOOLBAR], 1);
                     igEndMenu();
                 }
