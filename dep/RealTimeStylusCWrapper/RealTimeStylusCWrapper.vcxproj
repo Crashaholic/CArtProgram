@@ -140,7 +140,6 @@
     <ClCompile Include="rtsc.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="CRTPen.h" />
     <ClInclude Include="RTPen.hpp" />
     <ClInclude Include="rtsc.h" />
   </ItemGroup>

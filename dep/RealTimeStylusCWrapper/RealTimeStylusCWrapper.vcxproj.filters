@@ -26,9 +26,6 @@
     <ClInclude Include="RTPen.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="CRTPen.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="rtsc.h">
       <Filter>Header Files</Filter>
     </ClInclude>

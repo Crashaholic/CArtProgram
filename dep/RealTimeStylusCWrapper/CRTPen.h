@@ -1,6 +1,0 @@
-#ifndef WINDOWS_RTPEN_WRAP_H
-#define WINDOWS_RTPEN_WRAP_H
-
-
-
-#endif
