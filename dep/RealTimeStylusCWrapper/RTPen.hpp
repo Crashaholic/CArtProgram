@@ -16,9 +16,19 @@
     #include <rtscom_i.c>
     #include <ole2.h>
 
+    static float ScaleX, ScaleY;
+    static IRealTimeStylus* RTS_RealTimeStylus;
+
     class RTS_API RTPen : public IStylusSyncPlugin {
     public:
         RTPen() : refCount(1), punkFTMarshaller(NULL) {}
+        ~RTPen() 
+        { 
+            if (punkFTMarshaller) 
+            {
+                punkFTMarshaller->Release();
+            } 
+        }
 
         static RTPen* Create(IRealTimeStylus* rtsp);
 

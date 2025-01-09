@@ -44,11 +44,18 @@ extern "C" {
 
 	#include <Windows.h>
 
+	typedef struct StylusPacket {
+		LONG x;
+		LONG y;
+	} StylusPacket;
+
+	RTSC_API typedef void (*StylusCallback)(StylusPacket* packets, size_t count);
+
 	// Handle to the RealTimeStylus system
 	typedef void* RTS_HANDLE;
 
 	// Initialize the RealTimeStylus system and attach the handler
-	RTSC_API RTS_HANDLE RTS_Init(HWND hwnd);
+	RTSC_API RTS_HANDLE RTS_Init(HWND hwnd, StylusCallback callback);
 
 	// Shutdown the RealTimeStylus system
 	RTSC_API void RTS_Shutdown(RTS_HANDLE rtsHandle);

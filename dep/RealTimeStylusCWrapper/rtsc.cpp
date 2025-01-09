@@ -1,13 +1,14 @@
 #include "rtsc.h"
 #include "RTPen.hpp"  // The header file for the RTPen class
 
-IRealTimeStylus* realTimeStylus;
-struct RTSWrapper 
+
+struct RTSWrapper
 {
     RTPen* handler;
 };
 
-RTSC_API RTS_HANDLE RTS_Init(HWND hwnd)
+
+RTSC_API RTS_HANDLE RTS_Init(HWND hwnd, StylusCallback callback)
 {
     HRESULT res = CoInitialize(NULL);
     if (FAILED(res)) 
@@ -18,7 +19,7 @@ RTSC_API RTS_HANDLE RTS_Init(HWND hwnd)
     RTSWrapper* wrapper = new RTSWrapper();
     /*wrapper->handler = new RTPen();*/
 
-    HRESULT hr = CoCreateInstance(CLSID_RealTimeStylus, NULL, CLSCTX_ALL, IID_PPV_ARGS(&(realTimeStylus)));
+    HRESULT hr = CoCreateInstance(CLSID_RealTimeStylus, NULL, CLSCTX_ALL, IID_PPV_ARGS(&(RTS_RealTimeStylus)));
     if (FAILED(hr)) 
     {
         std::cout << "RTS_Init: failed to CoCreateInstance of RealTimeStylus\n";
@@ -28,37 +29,26 @@ RTSC_API RTS_HANDLE RTS_Init(HWND hwnd)
         return nullptr;
     }
 
-    realTimeStylus->put_HWND(reinterpret_cast<UINT_PTR>(hwnd));
+    RTS_RealTimeStylus->put_HWND(reinterpret_cast<UINT_PTR>(hwnd));
     if (FAILED(hr))
     {
         std::cout << "RTS_Init: failed to set window handle\n";
-        realTimeStylus->Release();
+        RTS_RealTimeStylus->Release();
         return NULL;
     }
 
-    wrapper->handler = RTPen::Create(realTimeStylus);
+    wrapper->handler = RTPen::Create(RTS_RealTimeStylus);
     if (!wrapper->handler)
     {
         std::cout << "RTS_Init: failed to create RTPen\n";
-        realTimeStylus->Release();
+        RTS_RealTimeStylus->Release();
         return NULL;
     }
 
-    //hr = realTimeStylus->AddStylusSyncPlugin(0, wrapper->handler);
-    //if (FAILED(hr)) 
-    //{
-    //    //syncPlugin->Release();
-    //    realTimeStylus->Release();
-    //    delete wrapper->handler;
-    //    delete wrapper;
-    //    CoUninitialize();
-    //    return nullptr;
-    //}
-
-    hr = realTimeStylus->put_Enabled(TRUE);
+    hr = RTS_RealTimeStylus->put_Enabled(TRUE);
     if (FAILED(hr)) 
     {
-        realTimeStylus->Release();
+        RTS_RealTimeStylus->Release();
         delete wrapper->handler;
         delete wrapper;
         CoUninitialize();
@@ -74,10 +64,10 @@ RTSC_API void RTS_Shutdown(RTS_HANDLE rtsHandle)
 
     RTSWrapper* wrapper = (RTSWrapper*)rtsHandle;
 
-    if (realTimeStylus) 
+    if (RTS_RealTimeStylus) 
     {
-        realTimeStylus->put_Enabled(FALSE);
-        realTimeStylus->Release();
+        RTS_RealTimeStylus->put_Enabled(FALSE);
+        RTS_RealTimeStylus->Release();
     }
 
     if (wrapper->handler) 
@@ -96,7 +86,7 @@ RTSC_API HRESULT RTS_RealTimeStylusEnabled(RTS_HANDLE rtsHandle)
     {
         return E_POINTER;
     }
-    return wrapper->handler->RealTimeStylusEnabled(nullptr, 0, nullptr);
+    return wrapper->handler->RealTimeStylusEnabled(RTS_RealTimeStylus, 0, nullptr);
 }
 
 RTSC_API HRESULT RTS_RealTimeStylusDisabled(RTS_HANDLE rtsHandle)
@@ -106,7 +96,7 @@ RTSC_API HRESULT RTS_RealTimeStylusDisabled(RTS_HANDLE rtsHandle)
     {
         return E_POINTER;
     }
-    return wrapper->handler->RealTimeStylusDisabled(nullptr, 0, nullptr);
+    return wrapper->handler->RealTimeStylusDisabled(RTS_RealTimeStylus, 0, nullptr);
 }
 
 RTSC_API HRESULT RTS_StylusInRange(RTS_HANDLE rtsHandle, LONG tcid, LONG sid)
@@ -116,7 +106,7 @@ RTSC_API HRESULT RTS_StylusInRange(RTS_HANDLE rtsHandle, LONG tcid, LONG sid)
     {
         return E_POINTER;
     }
-    return wrapper->handler->StylusInRange(nullptr, tcid, sid);
+    return wrapper->handler->StylusInRange(RTS_RealTimeStylus, tcid, sid);
 }
 
 RTSC_API HRESULT RTS_StylusOutOfRange(RTS_HANDLE rtsHandle, LONG tcid, LONG sid)
@@ -126,7 +116,7 @@ RTSC_API HRESULT RTS_StylusOutOfRange(RTS_HANDLE rtsHandle, LONG tcid, LONG sid)
     {
         return E_POINTER;
     }
-    return wrapper->handler->StylusOutOfRange(nullptr, tcid, sid);
+    return wrapper->handler->StylusOutOfRange(RTS_RealTimeStylus, tcid, sid);
 }
 
 RTSC_API HRESULT RTS_StylusDown(RTS_HANDLE rtsHandle, LONG x, LONG y)
@@ -139,7 +129,7 @@ RTSC_API HRESULT RTS_StylusDown(RTS_HANDLE rtsHandle, LONG x, LONG y)
 
     StylusInfo stylusInfo = { 0 };
     LONG packet[] = { x, y };
-    return wrapper->handler->StylusDown(nullptr, &stylusInfo, 2, packet, nullptr);
+    return wrapper->handler->StylusDown(RTS_RealTimeStylus, &stylusInfo, 2, packet, nullptr);
 }
 
 RTSC_API HRESULT RTS_StylusUp(RTS_HANDLE rtsHandle, LONG x, LONG y)
@@ -152,7 +142,7 @@ RTSC_API HRESULT RTS_StylusUp(RTS_HANDLE rtsHandle, LONG x, LONG y)
 
     StylusInfo stylusInfo = { 0 };
     LONG packet[] = { x, y };
-    return wrapper->handler->StylusUp(nullptr, &stylusInfo, 2, packet, nullptr);
+    return wrapper->handler->StylusUp(RTS_RealTimeStylus, &stylusInfo, 2, packet, nullptr);
 }
 
 RTSC_API HRESULT RTS_TabletAdded(RTS_HANDLE rtsHandle, void* piTablet)
@@ -163,7 +153,7 @@ RTSC_API HRESULT RTS_TabletAdded(RTS_HANDLE rtsHandle, void* piTablet)
         return E_POINTER;
     }
 
-    return wrapper->handler->TabletAdded(nullptr, (IInkTablet*)piTablet);
+    return wrapper->handler->TabletAdded(RTS_RealTimeStylus, (IInkTablet*)piTablet);
 }
 
 RTSC_API HRESULT RTS_Packets(RTS_HANDLE rtsHandle, LONG* packets, ULONG packetCount, ULONG bufferLength )
@@ -185,7 +175,7 @@ RTSC_API HRESULT RTS_Packets(RTS_HANDLE rtsHandle, LONG* packets, ULONG packetCo
     LONG* inOutPackets = nullptr;
 
     return wrapper->handler->Packets(
-        nullptr,        // Assuming no RealTimeStylus source for the wrapper
+        RTS_RealTimeStylus, // Assuming no RealTimeStylus source for the wrapper
         &stylusInfo,    // Placeholder StylusInfo
         packetCount,    // Count of packets
         bufferLength,   // Length of the packet buffer
